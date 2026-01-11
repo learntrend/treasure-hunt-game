@@ -40,7 +40,6 @@ function setupEventListeners() {
     document.getElementById('start-game-btn').addEventListener('click', startGame);
     document.getElementById('view-tutorial-btn').addEventListener('click', showTutorial);
     document.getElementById('start-after-tutorial-btn').addEventListener('click', startAfterTutorial);
-    document.getElementById('skip-tutorial-btn').addEventListener('click', skipTutorial);
     
     // Starting point screen
     document.getElementById('arrived-btn').addEventListener('click', startGameplay);
@@ -124,11 +123,6 @@ function startAfterTutorial() {
     showScreen('welcome-screen');
 }
 
-// Skip tutorial
-function skipTutorial() {
-    showScreen('welcome-screen');
-}
-
 // Start game from welcome screen
 function startGame() {
     const playerName = document.getElementById('player-name').value.trim();
@@ -177,12 +171,12 @@ function loadCurrentLocation() {
     const location = gameEngine.getCurrentLocation();
     if (!location) return;
     
-    // Apply page turn animation to clue section
+    // Apply fade-in animation to clue section
     const clueSection = document.getElementById('clue-section');
-    clueSection.classList.add('page-turn');
+    clueSection.classList.add('fade-in');
     setTimeout(() => {
-        clueSection.classList.remove('page-turn');
-    }, 800);
+        clueSection.classList.remove('fade-in');
+    }, 1000);
     
     // Update clue
     document.getElementById('clue-text').textContent = location.clue;
@@ -192,6 +186,12 @@ function loadCurrentLocation() {
     document.getElementById('location-name-input-container').style.display = 'block';
     document.getElementById('location-name-input').value = '';
     document.getElementById('location-name-input').classList.remove('error', 'success');
+    
+    // Clear any error messages from previous location
+    const locationError = document.getElementById('location-name-input-error');
+    if (locationError) {
+        locationError.remove();
+    }
     
     // Hide location info and question sections initially
     document.getElementById('location-info-section').style.display = 'none';
@@ -209,10 +209,15 @@ function loadCurrentLocation() {
 function handleSubmitLocationName() {
     const locationNameInput = document.getElementById('location-name-input');
     const locationName = locationNameInput.value.trim();
+    const errorContainer = document.getElementById('location-name-error');
+    
+    // Clear previous error
+    if (errorContainer) {
+        errorContainer.remove();
+    }
     
     if (!locationName) {
-        showMessage('Please enter a location name.', 'error');
-        locationNameInput.classList.add('error');
+        showInputError(locationNameInput, 'Please enter a location name.');
         return;
     }
     
@@ -221,7 +226,7 @@ function handleSubmitLocationName() {
     if (result && result.correct) {
         locationNameInput.classList.remove('error');
         locationNameInput.classList.add('success');
-        showMessage('Correct location!', 'success');
+        if (errorContainer) errorContainer.remove();
         
         // Hide location name input
         document.getElementById('location-name-input-container').style.display = 'none';
@@ -239,13 +244,7 @@ function handleSubmitLocationName() {
             showQuestionSection();
         }, 1500);
     } else {
-        locationNameInput.classList.add('error');
-        locationNameInput.classList.remove('success');
-        showMessage('Incorrect location. Try again!', 'error');
-        // Don't clear input - let user retry
-        setTimeout(() => {
-            locationNameInput.classList.remove('error');
-        }, 2000);
+        showInputError(locationNameInput, 'Incorrect location. Try again!');
     }
 }
 
@@ -257,20 +256,35 @@ function showQuestionSection() {
     document.getElementById('question-text').textContent = location.question;
     document.getElementById('answer-input').value = '';
     document.getElementById('answer-input').classList.remove('error', 'success');
+    
+    // Clear any error messages from previous question
+    const answerError = document.getElementById('answer-input-error');
+    if (answerError) {
+        answerError.remove();
+    }
+    
     const questionSection = document.getElementById('question-section');
     questionSection.style.display = 'block';
     questionSection.classList.add('scroll-reveal');
     document.getElementById('action-buttons-container').style.display = 'block';
+    
+    // Reset hint buttons (text hint for question section)
+    resetHintButtons();
 }
 
 // Submit answer - Allow unlimited retries
 function submitAnswer() {
     const answerInput = document.getElementById('answer-input');
     const answerText = answerInput.value.trim();
+    const errorContainer = document.getElementById('answer-input-error');
+    
+    // Clear previous error
+    if (errorContainer) {
+        errorContainer.remove();
+    }
     
     if (!answerText) {
-        showMessage('Please enter an answer.', 'error');
-        answerInput.classList.add('error');
+        showInputError(answerInput, 'Please enter an answer.');
         return;
     }
     
@@ -280,6 +294,7 @@ function submitAnswer() {
         if (result.correct) {
             answerInput.classList.remove('error');
             answerInput.classList.add('success');
+            if (errorContainer) errorContainer.remove();
             showMessage('Correct! +' + result.points + ' points', 'success');
             
             // Update locations panel
@@ -291,7 +306,7 @@ function submitAnswer() {
                     showFinalScreen();
                 }, 2000);
             } else {
-                // Move to next location after delay with page turn animation
+                // Move to next location after delay with fade-in animation
                 setTimeout(() => {
                     gameEngine.nextLocation();
                     loadCurrentLocation();
@@ -299,24 +314,34 @@ function submitAnswer() {
                 }, 2000);
             }
         } else {
-            answerInput.classList.add('error');
-            answerInput.classList.remove('success');
-            showMessage('Incorrect answer. Try again!', 'error');
-            // Don't clear input - let user retry with unlimited attempts
-            setTimeout(() => {
-                answerInput.classList.remove('error');
-            }, 2000);
+            showInputError(answerInput, 'Incorrect answer. Try again!');
         }
     }
 }
 
-// Show text hint
-function showTextHint() {
-    if (gameEngine.hasUsedTextHint()) {
-        alert('You have already used the text hint for this location.');
-        return;
+// Show error message below input field
+function showInputError(inputElement, message) {
+    // Remove existing error
+    const existingError = inputElement.parentElement.querySelector('.input-error');
+    if (existingError) {
+        existingError.remove();
     }
     
+    inputElement.classList.add('error');
+    inputElement.classList.remove('success');
+    
+    // Create error message element
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'input-error';
+    errorDiv.id = inputElement.id + '-error';
+    errorDiv.textContent = message;
+    
+    // Insert after input field
+    inputElement.parentElement.insertBefore(errorDiv, inputElement.nextSibling);
+}
+
+// Show text hint
+function showTextHint() {
     const hint = gameEngine.useTextHint();
     if (hint) {
         showHintModal('Text Hint', hint, false);
@@ -327,29 +352,26 @@ function showTextHint() {
 
 // Show map hint
 function showMapHint() {
-    if (gameEngine.hasUsedMapHint()) {
-        alert('You have already used the map hint for this location.');
-        return;
-    }
-    
     const hintData = gameEngine.useMapHint();
     if (hintData) {
-        showHintModal('Map Hint', hintData.text, true, hintData.locationName);
+        showHintModal('Map Hint', hintData.text, true);
         updateScoreDisplay(gameEngine.getScore());
         resetHintButtons();
     }
 }
 
 // Show hint modal
-function showHintModal(title, text, isMapHint, locationName) {
+function showHintModal(title, text, isMapHint) {
     document.getElementById('hint-modal-title').textContent = title;
     document.getElementById('hint-text').textContent = text;
     
     const mapContainer = document.getElementById('map-hint-container');
     if (isMapHint) {
         mapContainer.style.display = 'block';
-        if (locationName) {
-            document.getElementById('map-hint-text').textContent = `Next location: ${locationName}`;
+        // Hide the "Next location" text
+        const mapHintText = document.getElementById('map-hint-text');
+        if (mapHintText) {
+            mapHintText.style.display = 'none';
         }
     } else {
         mapContainer.style.display = 'none';
@@ -429,17 +451,41 @@ async function showFinalScreen() {
     // Update final screen
     document.getElementById('final-time').textContent = stats.time;
     document.getElementById('final-score').textContent = stats.score;
-    // Format message with line breaks
-    const messageElement = document.getElementById('personal-message-text');
-    messageElement.innerHTML = stats.personalMessage.replace(/\n/g, '<br>');
     
-    // Show final screen
+    // Show final screen first
     showScreen('final-screen');
     
-    // Show feedback dialog after a short delay
+    // Start typewriter effect for letter after screen is shown
     setTimeout(() => {
-        showFeedbackModal();
-    }, 3000); // Show after 3 seconds
+        startTypewriterEffect(stats.personalMessage);
+    }, 500);
+}
+
+// Typewriter effect for letter content
+function startTypewriterEffect(message) {
+    const messageElement = document.getElementById('personal-message-text');
+    const fullText = message.replace(/\n/g, '<br>');
+    messageElement.innerHTML = '';
+    messageElement.style.opacity = '1';
+    
+    let index = 0;
+    const speed = 30; // milliseconds per character
+    
+    function typeWriter() {
+        if (index < fullText.length) {
+            // Handle HTML tags
+            if (fullText.substring(index, index + 4) === '<br>') {
+                messageElement.innerHTML += '<br>';
+                index += 4;
+            } else {
+                messageElement.innerHTML += fullText.charAt(index);
+                index++;
+            }
+            setTimeout(typeWriter, speed);
+        }
+    }
+    
+    typeWriter();
 }
 
 // Show feedback modal
@@ -534,17 +580,18 @@ function resetHintButtons() {
         const textHintUsed = gameEngine.hasUsedTextHint();
         const mapHintUsed = gameEngine.hasUsedMapHint();
         
-        textHintBtn.disabled = textHintUsed;
-        mapHintBtn.disabled = mapHintUsed;
+        // Hints can be shown multiple times, but only deduct points on first use
+        textHintBtn.disabled = false;
+        mapHintBtn.disabled = false;
         
         if (textHintUsed) {
-            textHintBtn.textContent = '💡 Text Hint (Used)';
+            textHintBtn.textContent = '💡 Text Hint (View Again)';
         } else {
             textHintBtn.textContent = '💡 Text Hint (-30 pts)';
         }
         
         if (mapHintUsed) {
-            mapHintBtn.textContent = '🗺️ Map Hint (Used)';
+            mapHintBtn.textContent = '🗺️ Map Hint (View Again)';
         } else {
             mapHintBtn.textContent = '🗺️ Map Hint (-50 pts)';
         }

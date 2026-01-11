@@ -12,10 +12,16 @@
 </head>
 <body>
     <!-- Background Music -->
-    <!-- Replace with your own music URL. Example free sources: freesound.org, pixabay.com/music -->
-    <audio id="background-music" loop>
-        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
-        <!-- Fallback: You can also use local file: <source src="music/treasure-hunt-theme.mp3" type="audio/mpeg"> -->
+    <!-- 
+    FREE AUDIO SOURCE: Use music from Pixabay Music (https://pixabay.com/music/)
+    - License: Free for commercial use, NO attribution required
+    - Search for "adventure", "mystery", or "treasure hunt"
+    - Download and add URL below
+    -->
+    <audio id="background-music" loop preload="auto">
+        <!-- Add your Pixabay Music URL here: -->
+        <!-- Example: <source src="YOUR_PIXABAY_MUSIC_URL" type="audio/mpeg"> -->
+        <!-- For now, audio is disabled - add your music file to enable -->
     </audio>
 
     <!-- Tutorial Screen -->
@@ -62,7 +68,6 @@
             </div>
 
             <div class="tutorial-actions">
-                <button id="skip-tutorial-btn" class="btn-secondary">Skip Tutorial</button>
                 <button id="start-after-tutorial-btn" class="btn-primary">Got It! Let's Begin</button>
             </div>
         </div>
@@ -115,6 +120,13 @@
                     <p class="location-address" id="starting-location-address">[Starting Location Address]</p>
                 </div>
                 <div class="location-image-placeholder">
+                    <!-- 
+                    IMAGE SOURCE: Unsplash (https://unsplash.com)
+                    LICENSE: Free to use under Unsplash License (https://unsplash.com/license)
+                    - Free for commercial and personal use
+                    - No attribution required (but appreciated)
+                    - Can modify and use freely
+                    -->
                     <img src="https://images.unsplash.com/photo-1519682337058-a94d519337bc?w=400&h=300&fit=crop" alt="Starting Location" onerror="this.style.display='none';">
                 </div>
                 <button id="arrived-btn" class="btn-primary btn-sparkle">I've Arrived - Start the Hunt!</button>
@@ -157,7 +169,6 @@
                     <button id="submit-location-name-btn" class="btn-primary btn-sparkle" style="margin-top: 10px;">Submit Location</button>
                 </div>
                 <div class="hint-buttons">
-                    <button id="text-hint-btn" class="btn-hint">💡 Text Hint (-30 pts)</button>
                     <button id="map-hint-btn" class="btn-hint">🗺️ Map Hint (-50 pts)</button>
                 </div>
             </div>
@@ -184,6 +195,9 @@
                         <label for="answer-input" style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-dark);">Your answer:</label>
                         <input type="text" id="answer-input" placeholder="Type your answer here...">
                         <button id="submit-answer-btn" class="btn-primary btn-sparkle" style="margin-top: 10px;">Submit Answer</button>
+                    </div>
+                    <div class="hint-buttons" style="margin-top: 20px;">
+                        <button id="text-hint-btn" class="btn-hint">💡 Text Hint (-30 pts)</button>
                     </div>
                 </div>
             </div>
@@ -234,9 +248,10 @@
                 <p id="hint-text">Loading hint...</p>
                 <div id="map-hint-container" style="display: none;">
                     <div class="map-placeholder">
+                        <!-- Unsplash: Free to use under Unsplash License (https://unsplash.com/license) -->
                         <img src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=400&h=300&fit=crop" alt="Map" onerror="this.style.display='none';">
                         <p>Map showing next location</p>
-                        <p id="map-hint-text" style="margin-top: 10px; font-size: 0.9rem;"></p>
+                        <p id="map-hint-text" style="display: none;"></p>
                     </div>
                 </div>
             </div>
@@ -269,6 +284,7 @@
         <div class="final-container">
             <div class="final-header">
                 <div class="time-machine-icon-large">
+                    <!-- Unsplash: Free to use under Unsplash License (https://unsplash.com/license) -->
                     <img src="https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=150&h=150&fit=crop" alt="Time Machine" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
                     <span style="display:none;">⏰</span>
                 </div>
