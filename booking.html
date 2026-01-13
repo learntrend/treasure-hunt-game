@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Your Adventure - Lost Letter from 1800</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .booking-container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .booking-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .booking-intro {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            text-align: center;
+            line-height: 1.8;
+        }
+
+        .booking-form {
+            background: var(--card-bg);
+            color: var(--text-dark);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: var(--shadow-light);
+        }
+
+        .form-section {
+            margin-bottom: 30px;
+            padding-bottom: 25px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .form-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .form-section h3 {
+            font-family: 'Cinzel', serif;
+            font-size: 1.3rem;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-dark);
+            font-size: 0.95rem;
+        }
+
+        .form-group label .required {
+            color: var(--accent-color);
+            margin-left: 3px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            color: #666;
+            font-size: 0.85rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .payment-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .payment-option {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .payment-option:hover {
+            border-color: var(--accent-color);
+            background: rgba(233, 69, 96, 0.05);
+        }
+
+        .payment-option input[type="radio"] {
+            display: none;
+        }
+
+        .payment-option.selected {
+            border-color: var(--accent-color);
+            background: rgba(233, 69, 96, 0.1);
+        }
+
+        .payment-option label {
+            cursor: pointer;
+            margin: 0;
+            font-weight: 500;
+        }
+
+        .submit-section {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .booking-success {
+            display: none;
+            text-align: center;
+            padding: 40px 20px;
+            background: var(--card-bg);
+            border-radius: 15px;
+            box-shadow: var(--shadow-light);
+            color: var(--text-dark);
+        }
+
+        .booking-success.show {
+            display: block;
+        }
+
+        .booking-success h2 {
+            font-family: 'Cinzel', serif;
+            font-size: 2rem;
+            color: #1a1a2e;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .booking-success p {
+            font-size: 1.1rem;
+            color: #333;
+            line-height: 1.8;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+
+        .error-message {
+            color: var(--accent-color);
+            font-size: 0.9rem;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .form-group.error .error-message {
+            display: block;
+        }
+
+        .form-group.error input,
+        .form-group.error select,
+        .form-group.error textarea {
+            border-color: var(--accent-color);
+        }
+
+        .datetime-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .datetime-inputs {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="booking-container">
+        <div class="booking-header">
+            <div class="time-machine-icon">
+                <img src="https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=200&h=200&fit=crop" alt="Time Machine" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <span style="display:none;">⏰</span>
+            </div>
+            <h1 class="game-title">Book Your Adventure</h1>
+            <p class="game-subtitle">Lost Letter from 1800 - Treasure Hunt</p>
+        </div>
+
+        <div class="booking-intro">
+            <p>Ready to embark on a time-traveling treasure hunt? Fill out the form below to book your adventure!</p>
+            <p style="margin-top: 10px; font-size: 0.9rem; opacity: 0.9;">All fields marked with <span style="color: var(--accent-color);">*</span> are required.</p>
+        </div>
+
+        <!-- Booking Form -->
+        <form id="booking-form" class="booking-form">
+            <!-- Contact Information -->
+            <div class="form-section">
+                <h3>📧 Contact Information</h3>
+                
+                <div class="form-group">
+                    <label for="email">Email Address <span class="required">*</span></label>
+                    <input type="email" id="email" name="email" placeholder="your.email@example.com" required>
+                    <small>We'll send your booking confirmation here</small>
+                    <div class="error-message" id="email-error"></div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="name">Full Name <span class="required">*</span></label>
+                        <input type="text" id="name" name="name" placeholder="John Doe" required>
+                        <div class="error-message" id="name-error"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">Contact Number <span class="required">*</span></label>
+                        <input type="tel" id="phone" name="phone" placeholder="+44 123 456 7890" required>
+                        <small>Include country code</small>
+                        <div class="error-message" id="phone-error"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Game Details -->
+            <div class="form-section">
+                <h3>🎮 Game Details</h3>
+                
+                <div class="form-row">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="date">Preferred Date <span class="required">*</span></label>
+                        <input type="date" id="date" name="date" required>
+                        <div class="error-message" id="date-error"></div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="time-hour" style="margin-bottom: 8px;">Preferred Time <span class="required">*</span></label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div>
+                                <select id="time-hour" name="time-hour" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1rem; font-family: 'Inter', sans-serif;">
+                                    <option value="">Hour</option>
+                                </select>
+                            </div>
+                            <div>
+                                <select id="time-minute" name="time-minute" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1rem; font-family: 'Inter', sans-serif;">
+                                    <option value="">Minute</option>
+                                    <option value="00">00</option>
+                                    <option value="15">15</option>
+                                    <option value="30">30</option>
+                                    <option value="45">45</option>
+                                </select>
+                            </div>
+                        </div>
+                        <small style="margin-top: 5px; display: block;">These are the available slots in the UK time</small>
+                        <input type="hidden" id="time" name="time" required>
+                        <div class="error-message" id="time-error"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="players">Number of Players <span class="required">*</span></label>
+                    <input type="number" id="players" name="players" min="1" max="50" placeholder="Enter number of players" required>
+                    <small>Enter the total number of players (minimum 1)</small>
+                    <div class="error-message" id="players-error"></div>
+                </div>
+            </div>
+
+            <!-- Personal Message -->
+            <div class="form-section">
+                <h3>💌 Personal Message</h3>
+                
+                <div class="form-group">
+                    <label for="personal-message">Message for Final Letter <span class="required">*</span></label>
+                    <textarea id="personal-message" name="personal-message" placeholder="Write a special message that will be revealed at the end of the game. This could be a message for your team, a special note, or anything you'd like to say..." required></textarea>
+                    <small>This message will be hidden in the final letter and revealed when the game is completed.</small>
+                    <div class="error-message" id="personal-message-error"></div>
+                </div>
+            </div>
+
+            <!-- Payment -->
+            <div class="form-section">
+                <h3>💳 Payment</h3>
+                
+                <div class="form-group">
+                    <label>Payment Method <span class="required">*</span></label>
+                    <div class="payment-options">
+                        <div class="payment-option" onclick="selectPayment('card')">
+                            <input type="radio" id="payment-card" name="payment" value="card" required>
+                            <label for="payment-card">💳 Card</label>
+                        </div>
+                        <div class="payment-option" onclick="selectPayment('paypal')">
+                            <input type="radio" id="payment-paypal" name="payment" value="paypal" required>
+                            <label for="payment-paypal">PayPal</label>
+                        </div>
+                        <div class="payment-option" onclick="selectPayment('bank')">
+                            <input type="radio" id="payment-bank" name="payment" value="bank" required>
+                            <label for="payment-bank">🏦 Bank Transfer</label>
+                        </div>
+                    </div>
+                    <small>Payment link will be sent via email after booking confirmation</small>
+                    <div class="error-message" id="payment-error"></div>
+                </div>
+            </div>
+
+            <!-- Additional Information -->
+            <div class="form-section">
+                <h3>ℹ️ Additional Information</h3>
+                
+                <div class="form-group">
+                    <label for="referral">How did you find us? <span class="required">*</span></label>
+                    <select id="referral" name="referral" required>
+                        <option value="">Select...</option>
+                        <option value="google">Google Search</option>
+                        <option value="social-media">Social Media (Facebook, Instagram, etc.)</option>
+                        <option value="friend">Friend/Family Recommendation</option>
+                        <option value="website">Other Website</option>
+                        <option value="advertisement">Advertisement</option>
+                        <option value="event">Event/Festival</option>
+                        <option value="other">Other</option>
+                    </select>
+                    <div class="error-message" id="referral-error"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="special-requests">Special Requests or Notes</label>
+                    <textarea id="special-requests" name="special-requests" placeholder="Any special requirements, accessibility needs, or notes for us..."></textarea>
+                    <small>Optional: Let us know if you have any special requirements</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="emergency-contact">Emergency Contact (Optional)</label>
+                    <input type="text" id="emergency-contact" name="emergency-contact" placeholder="Name and phone number">
+                    <small>In case we need to reach someone during your game</small>
+                </div>
+            </div>
+
+            <!-- Submit -->
+            <div class="submit-section">
+                <button type="submit" class="btn-primary btn-sparkle" id="submit-booking-btn">
+                    📅 Confirm Booking
+                </button>
+                <p style="margin-top: 15px; font-size: 0.9rem; color: #666;">
+                    By submitting this form, you agree to our terms and conditions.
+                </p>
+                <p style="margin-top: 10px; font-size: 0.75rem; color: #999; line-height: 1.6; text-align: center; max-width: 600px; margin: 10px auto 0;">
+                    <strong>Safety Notice:</strong> This game is designed to be played in a safe environment. Please play responsibly, be aware of your surroundings, follow all local laws and regulations, and exercise caution when navigating to locations. We are not responsible for any accidents, injuries, losses, or damages that may occur during gameplay. Participants play at their own risk.
+                </p>
+            </div>
+        </form>
+
+        <!-- Success Message -->
+        <div id="booking-success" class="booking-success">
+            <div style="font-size: 4rem; margin-bottom: 20px;">🎉</div>
+            <h2>Booking Confirmed!</h2>
+            <p>Thank you for booking your adventure!</p>
+            <p>We've sent a confirmation email to <strong id="confirmation-email"></strong></p>
+            <p>You'll receive payment instructions shortly.</p>
+            <p style="margin-top: 30px;">
+                <a href="index.html" class="btn-primary btn-sparkle" style="text-decoration: none; display: inline-block;">
+                    Return to Game
+                </a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="firebase-config.js"></script>
+    
+    <script>
+        let db = null;
+        let isInitialized = false;
+
+        // Initialize Firebase
+        function initializeFirebase() {
+            if (isInitialized) return true;
+            
+            if (typeof firebase === 'undefined' || typeof firebaseConfig === 'undefined') {
+                console.error('Firebase not configured');
+                return false;
+            }
+
+            try {
+                if (firebase.apps.length === 0) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                db = firebase.firestore();
+                isInitialized = true;
+                return true;
+            } catch (error) {
+                console.error('Error initializing Firebase:', error);
+                return false;
+            }
+        }
+
+        // Select payment option
+        function selectPayment(method) {
+            document.querySelectorAll('.payment-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            document.getElementById(`payment-${method}`).checked = true;
+            document.getElementById(`payment-${method}`).closest('.payment-option').classList.add('selected');
+        }
+
+        // Generate time slots (15-minute intervals from 09:00 to 19:00 UK time)
+        function generateTimeSlots() {
+            const slots = [];
+            for (let hour = 9; hour <= 19; hour++) {
+                for (let minute = 0; minute < 60; minute += 15) {
+                    const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                    slots.push(timeString);
+                }
+            }
+            return slots;
+        }
+
+        // Load available hours based on selected date and existing bookings
+        async function loadAvailableTimeSlots(selectedDate) {
+            if (!selectedDate) {
+                // Reset hour dropdown
+                const hourSelect = document.getElementById('time-hour');
+                if (hourSelect) {
+                    hourSelect.innerHTML = '<option value="">Hour</option>';
+                }
+                return;
+            }
+
+            const hourSelect = document.getElementById('time-hour');
+            const minuteSelect = document.getElementById('time-minute');
+            const allSlots = generateTimeSlots();
+            
+            // Generate available hours (9-19)
+            const availableHours = [];
+            for (let hour = 9; hour <= 19; hour++) {
+                availableHours.push(hour.toString().padStart(2, '0'));
+            }
+            
+            // If no database, show all hours
+            if (!db || !isInitialized) {
+                if (hourSelect) {
+                    hourSelect.innerHTML = '<option value="">Hour</option>';
+                    availableHours.forEach(hour => {
+                        const option = document.createElement('option');
+                        option.value = hour;
+                        option.textContent = hour;
+                        hourSelect.appendChild(option);
+                    });
+                }
+                return;
+            }
+
+            try {
+                // Get all bookings for the selected date
+                const snapshot = await db.collection('bookings')
+                    .where('date', '==', selectedDate)
+                    .where('status', 'in', ['pending', 'confirmed'])
+                    .get();
+
+                const takenSlots = new Set();
+                snapshot.forEach(doc => {
+                    const booking = doc.data();
+                    if (booking.time) {
+                        // Normalize time format (ensure HH:MM format with leading zeros)
+                        const time = booking.time.trim();
+                        // Convert "9:00" to "09:00" if needed
+                        const parts = time.split(':');
+                        if (parts.length === 2) {
+                            const normalizedTime = `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
+                            takenSlots.add(normalizedTime);
+                            console.log('Found booked slot:', normalizedTime);
+                        } else {
+                            takenSlots.add(time);
+                        }
+                    }
+                });
+                console.log('Total taken slots for', selectedDate, ':', Array.from(takenSlots));
+
+                // Clear hour dropdown
+                if (hourSelect) {
+                    hourSelect.innerHTML = '<option value="">Hour</option>';
+                }
+
+                // Check which hours have available slots
+                const hoursWithAvailability = new Set();
+                availableHours.forEach(hour => {
+                    const minutes = ['00', '15', '30', '45'];
+                    minutes.forEach(minute => {
+                        const slot = `${hour}:${minute}`;
+                        if (!takenSlots.has(slot)) {
+                            hoursWithAvailability.add(hour);
+                        }
+                    });
+                });
+
+                // Add available hours
+                if (hourSelect) {
+                    availableHours.forEach(hour => {
+                        if (hoursWithAvailability.has(hour)) {
+                            const option = document.createElement('option');
+                            option.value = hour;
+                            option.textContent = hour;
+                            hourSelect.appendChild(option);
+                        }
+                    });
+
+                    if (hoursWithAvailability.size === 0) {
+                        hourSelect.innerHTML = '<option value="">No slots available</option>';
+                        hourSelect.disabled = true;
+                        if (minuteSelect) minuteSelect.disabled = true;
+                    } else {
+                        hourSelect.disabled = false;
+                        if (minuteSelect) minuteSelect.disabled = false;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading time slots:', error);
+                // On error, show all hours
+                if (hourSelect) {
+                    hourSelect.innerHTML = '<option value="">Hour</option>';
+                    availableHours.forEach(hour => {
+                        const option = document.createElement('option');
+                        option.value = hour;
+                        option.textContent = hour;
+                        hourSelect.appendChild(option);
+                    });
+                }
+            }
+        }
+
+        // Load available minutes based on selected hour and date
+        async function loadAvailableMinutes(selectedHour) {
+            const dateInput = document.getElementById('date');
+            const selectedDate = dateInput.value;
+            const minuteSelect = document.getElementById('time-minute');
+            
+            if (!selectedDate || !selectedHour || !minuteSelect) {
+                if (minuteSelect) {
+                    minuteSelect.innerHTML = '<option value="">Minute</option><option value="00">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option>';
+                }
+                return;
+            }
+
+            const allMinutes = ['00', '15', '30', '45'];
+            
+            // Get taken slots from database
+            let takenSlots = new Set();
+            if (db && isInitialized) {
+                try {
+                    const snapshot = await db.collection('bookings')
+                        .where('date', '==', selectedDate)
+                        .where('status', 'in', ['pending', 'confirmed'])
+                        .get();
+
+                    snapshot.forEach(doc => {
+                        const booking = doc.data();
+                        if (booking.time) {
+                            // Normalize time format (ensure HH:MM format with leading zeros)
+                            const time = booking.time.trim();
+                            const parts = time.split(':');
+                            if (parts.length === 2) {
+                                const normalizedTime = `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
+                                takenSlots.add(normalizedTime);
+                            } else {
+                                takenSlots.add(time);
+                            }
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error loading minutes:', error);
+                }
+            }
+
+            // Clear minute dropdown
+            minuteSelect.innerHTML = '<option value="">Minute</option>';
+
+            // Add available minutes for the selected hour
+            allMinutes.forEach(minute => {
+                const slot = `${selectedHour}:${minute}`;
+                if (!takenSlots.has(slot)) {
+                    const option = document.createElement('option');
+                    option.value = minute;
+                    option.textContent = minute;
+                    minuteSelect.appendChild(option);
+                }
+            });
+
+            if (minuteSelect.options.length === 1) {
+                minuteSelect.innerHTML = '<option value="">No slots available</option>';
+                minuteSelect.disabled = true;
+            } else {
+                minuteSelect.disabled = false;
+            }
+        }
+
+        // Update hidden time field when hour or minute changes
+        function updateTimeField() {
+            const hourSelect = document.getElementById('time-hour');
+            const minuteSelect = document.getElementById('time-minute');
+            const timeHidden = document.getElementById('time');
+            
+            if (hourSelect && minuteSelect && timeHidden) {
+                if (hourSelect.value && minuteSelect.value) {
+                    timeHidden.value = `${hourSelect.value}:${minuteSelect.value}`;
+                } else {
+                    timeHidden.value = '';
+                }
+            }
+        }
+
+        // Set minimum date to today
+        document.addEventListener('DOMContentLoaded', function() {
+            const dateInput = document.getElementById('date');
+            const hourSelect = document.getElementById('time-hour');
+            const minuteSelect = document.getElementById('time-minute');
+            const today = new Date().toISOString().split('T')[0];
+            dateInput.setAttribute('min', today);
+            
+            // Initialize Firebase
+            if (typeof window.DatabaseService !== 'undefined') {
+                window.DatabaseService.initializeFirebase();
+                initializeFirebase();
+            } else {
+                initializeFirebase();
+            }
+
+            // Load available hours when date changes
+            dateInput.addEventListener('change', function() {
+                loadAvailableTimeSlots(this.value);
+                // Reset hour and minute selections
+                hourSelect.value = '';
+                minuteSelect.value = '';
+                updateTimeField();
+            });
+
+            // Load available minutes when hour changes
+            hourSelect.addEventListener('change', async function() {
+                // Clear minute selection when hour changes
+                minuteSelect.value = '';
+                // Load available minutes for selected hour
+                if (this.value) {
+                    await loadAvailableMinutes(this.value);
+                } else {
+                    minuteSelect.innerHTML = '<option value="">Minute</option>';
+                }
+                updateTimeField();
+            });
+
+            minuteSelect.addEventListener('change', function() {
+                updateTimeField();
+            });
+
+            // Initial load of time slots (for today)
+            if (dateInput.value) {
+                loadAvailableTimeSlots(dateInput.value);
+            }
+        });
+
+        // Handle form submission
+        document.getElementById('booking-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Clear previous errors
+            document.querySelectorAll('.form-group').forEach(group => {
+                group.classList.remove('error');
+            });
+            
+            // Get form data
+            const timeHour = document.getElementById('time-hour').value;
+            const timeMinute = document.getElementById('time-minute').value;
+            const timeValue = timeHour && timeMinute ? `${timeHour}:${timeMinute}` : '';
+            
+            const formData = {
+                email: document.getElementById('email').value.trim(),
+                name: document.getElementById('name').value.trim(),
+                phone: document.getElementById('phone').value.trim(),
+                date: document.getElementById('date').value,
+                time: timeValue,
+                players: document.getElementById('players').value,
+                personalMessage: document.getElementById('personal-message').value.trim(),
+                paymentMethod: document.querySelector('input[name="payment"]:checked')?.value,
+                referral: document.getElementById('referral').value,
+                specialRequests: document.getElementById('special-requests').value.trim(),
+                emergencyContact: document.getElementById('emergency-contact').value.trim(),
+                submittedAt: new Date().toISOString(),
+                status: 'pending'
+            };
+            
+            // Validation
+            let isValid = true;
+            
+            if (!formData.email || !formData.email.includes('@')) {
+                showError('email', 'Please enter a valid email address');
+                isValid = false;
+            }
+            
+            if (!formData.name || formData.name.length < 2) {
+                showError('name', 'Please enter your full name');
+                isValid = false;
+            }
+            
+            if (!formData.phone || formData.phone.length < 5) {
+                showError('phone', 'Please enter a valid contact number');
+                isValid = false;
+            }
+            
+            if (!formData.date) {
+                showError('date', 'Please select a date');
+                isValid = false;
+            }
+            
+            if (!formData.time || !timeHour || !timeMinute) {
+                showError('time', 'Please select both hour and minute');
+                isValid = false;
+            }
+            
+            if (!formData.players || parseInt(formData.players) < 1) {
+                showError('players', 'Please enter a valid number of players (minimum 1)');
+                isValid = false;
+            }
+            
+            if (!formData.personalMessage || formData.personalMessage.length < 10) {
+                showError('personal-message', 'Please enter a personal message (at least 10 characters)');
+                isValid = false;
+            }
+            
+            if (!formData.paymentMethod) {
+                showError('payment', 'Please select a payment method');
+                isValid = false;
+            }
+            
+            if (!formData.referral) {
+                showError('referral', 'Please tell us how you found us');
+                isValid = false;
+            }
+            
+            if (!isValid) {
+                return;
+            }
+            
+            // Disable submit button
+            const submitBtn = document.getElementById('submit-booking-btn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing...';
+            
+            try {
+                // Save to Firebase
+                if (!db || !isInitialized) {
+                    if (!initializeFirebase()) {
+                        throw new Error('Database not available');
+                    }
+                }
+                
+                await db.collection('bookings').add(formData);
+                
+                // Show success message
+                document.getElementById('booking-form').style.display = 'none';
+                document.getElementById('booking-success').classList.add('show');
+                document.getElementById('confirmation-email').textContent = formData.email;
+                
+            } catch (error) {
+                console.error('Error saving booking:', error);
+                alert('There was an error processing your booking. Please try again or contact us directly.');
+                submitBtn.disabled = false;
+                submitBtn.textContent = '📅 Confirm Booking';
+            }
+        });
+
+        // Show error message
+        function showError(fieldId, message) {
+            const formGroup = document.getElementById(fieldId).closest('.form-group');
+            formGroup.classList.add('error');
+            const errorDiv = formGroup.querySelector('.error-message');
+            if (errorDiv) {
+                errorDiv.textContent = message;
+            }
+        }
+    </script>
+</body>
+</html>

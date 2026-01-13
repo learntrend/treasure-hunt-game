@@ -156,6 +156,92 @@
             color: #f57c00;
         }
 
+        .badge-pending {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .badge-confirmed {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .badge-completed {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .badge-cancelled {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            width: 90%;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #1a1a2e;
+        }
+
+        .btn-close {
+            background: rgba(233, 69, 96, 0.1);
+            border: none;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: #e94560;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-close:hover {
+            background: rgba(233, 69, 96, 0.2);
+        }
+
+        .modal-body .form-group {
+            margin-bottom: 15px;
+        }
+
+        .modal-body .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
         .export-btn {
             background: #4caf50;
         }
@@ -179,6 +265,28 @@
             <div id="active-stats" class="stats"></div>
             <div id="active-sessions-container">
                 <div class="loading">Loading active sessions...</div>
+            </div>
+        </div>
+
+        <!-- Bookings -->
+        <div class="section">
+            <h2>📅 Bookings</h2>
+            <div class="controls">
+                <button onclick="loadBookings()">🔄 Refresh Bookings</button>
+                <button onclick="exportBookingsToCSV()" class="export-btn">📥 Export to CSV</button>
+            </div>
+            <div id="bookings-stats" class="stats"></div>
+            
+            <!-- Upcoming Bookings -->
+            <h3 style="margin-top: 30px; margin-bottom: 15px; color: var(--primary-color);">Upcoming Bookings</h3>
+            <div id="upcoming-bookings-container">
+                <div class="loading">Loading upcoming bookings...</div>
+            </div>
+            
+            <!-- Completed Bookings -->
+            <h3 style="margin-top: 30px; margin-bottom: 15px; color: var(--primary-color);">Completed Bookings</h3>
+            <div id="completed-bookings-container">
+                <div class="loading">Loading completed bookings...</div>
             </div>
         </div>
 
@@ -209,6 +317,7 @@
         let db = null;
         let activeSessionsData = [];
         let completedGamesData = [];
+        let bookingsData = [];
 
         // Initialize Firebase
         function initializeFirebase() {
@@ -671,11 +780,377 @@
             window.URL.revokeObjectURL(url);
         }
 
+        // Load bookings from Firebase
+        async function loadBookings() {
+            if (!db) {
+                if (!initializeFirebase()) return;
+            }
+
+            const upcomingContainer = document.getElementById('upcoming-bookings-container');
+            const completedContainer = document.getElementById('completed-bookings-container');
+            
+            if (!upcomingContainer || !completedContainer) return;
+            
+            upcomingContainer.innerHTML = '<div class="loading">Loading...</div>';
+            completedContainer.innerHTML = '<div class="loading">Loading...</div>';
+
+            try {
+                const snapshot = await db.collection('bookings')
+                    .orderBy('date', 'asc')
+                    .orderBy('time', 'asc')
+                    .get();
+
+                bookingsData = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+
+                // Separate upcoming and completed
+                const now = new Date();
+                const upcoming = [];
+                const completed = [];
+
+                bookingsData.forEach(booking => {
+                    if (!booking.date || !booking.time) {
+                        completed.push(booking);
+                        return;
+                    }
+                    
+                    const bookingDateTime = new Date(`${booking.date}T${booking.time}`);
+                    if (bookingDateTime >= now && booking.status !== 'completed' && booking.status !== 'cancelled') {
+                        upcoming.push(booking);
+                    } else {
+                        completed.push(booking);
+                    }
+                });
+
+                // Update stats
+                updateBookingsStats(upcoming.length, completed.length);
+
+                // Display bookings
+                displayUpcomingBookings(upcoming);
+                displayCompletedBookings(completed);
+            } catch (error) {
+                console.error('Error loading bookings:', error);
+                if (upcomingContainer) {
+                    upcomingContainer.innerHTML = `<div class="empty-state">Error loading bookings: ${error.message}</div>`;
+                }
+                if (completedContainer) {
+                    completedContainer.innerHTML = `<div class="empty-state">Error loading bookings: ${error.message}</div>`;
+                }
+            }
+        }
+
+        // Update bookings statistics
+        function updateBookingsStats(upcomingCount, completedCount) {
+            const statsContainer = document.getElementById('bookings-stats');
+            if (!statsContainer) return;
+            
+            const pendingCount = bookingsData.filter(b => b.status === 'pending').length;
+            
+            statsContainer.innerHTML = `
+                <div class="stat-card">
+                    <h3>Total Bookings</h3>
+                    <div class="value">${bookingsData.length}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Upcoming</h3>
+                    <div class="value">${upcomingCount}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Completed</h3>
+                    <div class="value">${completedCount}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Pending</h3>
+                    <div class="value">${pendingCount}</div>
+                </div>
+            `;
+        }
+
+        // Display upcoming bookings
+        function displayUpcomingBookings(bookings) {
+            const container = document.getElementById('upcoming-bookings-container');
+            if (!container) return;
+
+            if (bookings.length === 0) {
+                container.innerHTML = '<div class="empty-state">No upcoming bookings</div>';
+                return;
+            }
+
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Players</th>
+                            <th>Payment</th>
+                            <th>Personal Message</th>
+                            <th>Status <span style="font-size: 0.8rem; font-weight: normal; color: #666;" title="Pending: Awaiting confirmation | Confirmed: Booking confirmed | Completed: Game finished | Cancelled: Booking cancelled">ℹ️</span></th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            bookings.forEach((booking, index) => {
+                const statusText = booking.status || 'pending';
+                const statusTooltip = {
+                    'pending': 'Awaiting confirmation',
+                    'confirmed': 'Booking confirmed',
+                    'completed': 'Game finished',
+                    'cancelled': 'Booking cancelled'
+                };
+                const personalMessage = booking.personalMessage || '-';
+                const messagePreview = personalMessage.length > 50 
+                    ? personalMessage.substring(0, 50) + '...' 
+                    : personalMessage;
+                
+                html += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${booking.name || '-'}</td>
+                        <td style="font-size: 0.9rem;">${booking.email || '-'}</td>
+                        <td>${booking.phone || '-'}</td>
+                        <td>${formatBookingDate(booking.date)}</td>
+                        <td>${booking.time || '-'}</td>
+                        <td>${booking.players || '-'}</td>
+                        <td>${formatPaymentMethod(booking.paymentMethod)}</td>
+                        <td style="max-width: 200px; font-size: 0.85rem;" title="${personalMessage !== '-' ? personalMessage.replace(/"/g, '&quot;') : ''}">${messagePreview}</td>
+                        <td>
+                            <span class="badge badge-${statusText}" title="${statusTooltip[statusText] || 'Unknown status'}">
+                                ${statusText.toUpperCase()}
+                            </span>
+                        </td>
+                        <td>
+                            <button onclick="editBooking('${booking.id}')" style="padding: 5px 10px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.85rem;">Edit</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // Display completed bookings
+        function displayCompletedBookings(bookings) {
+            const container = document.getElementById('completed-bookings-container');
+            if (!container) return;
+
+            if (bookings.length === 0) {
+                container.innerHTML = '<div class="empty-state">No completed bookings</div>';
+                return;
+            }
+
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Players</th>
+                            <th>Personal Message</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            bookings.forEach((booking, index) => {
+                const statusText = booking.status || 'completed';
+                const statusTooltip = {
+                    'pending': 'Awaiting confirmation',
+                    'confirmed': 'Booking confirmed',
+                    'completed': 'Game finished',
+                    'cancelled': 'Booking cancelled'
+                };
+                const personalMessage = booking.personalMessage || '-';
+                const messagePreview = personalMessage.length > 50 
+                    ? personalMessage.substring(0, 50) + '...' 
+                    : personalMessage;
+                
+                html += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${booking.name || '-'}</td>
+                        <td style="font-size: 0.9rem;">${booking.email || '-'}</td>
+                        <td>${booking.phone || '-'}</td>
+                        <td>${formatBookingDate(booking.date)}</td>
+                        <td>${booking.time || '-'}</td>
+                        <td>${booking.players || '-'}</td>
+                        <td style="max-width: 200px; font-size: 0.85rem;" title="${personalMessage !== '-' ? personalMessage.replace(/"/g, '&quot;') : ''}">${messagePreview}</td>
+                        <td>
+                            <span class="badge badge-${statusText}" title="${statusTooltip[statusText] || 'Unknown status'}">
+                                ${statusText.toUpperCase()}
+                            </span>
+                        </td>
+                        <td>
+                            <button onclick="editBooking('${booking.id}')" style="padding: 5px 10px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.85rem;">Edit</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // Format booking date
+        function formatBookingDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        // Format payment method
+        function formatPaymentMethod(method) {
+            const map = {
+                'card': '💳 Card',
+                'paypal': 'PayPal',
+                'bank': '🏦 Bank'
+            };
+            return map[method] || method || '-';
+        }
+
+        // Edit booking
+        function editBooking(bookingId) {
+            const booking = bookingsData.find(b => b.id === bookingId);
+            if (!booking) {
+                alert('Booking not found');
+                return;
+            }
+
+            // Create edit modal
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'flex';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Edit Booking</h3>
+                        <button onclick="this.closest('.modal').remove()" class="btn-close">✕</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Name:</label>
+                            <input type="text" id="edit-name" value="${(booking.name || '').replace(/"/g, '&quot;')}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                        </div>
+                        <div class="form-group">
+                            <label>Email:</label>
+                            <input type="email" id="edit-email" value="${(booking.email || '').replace(/"/g, '&quot;')}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                        </div>
+                        <div class="form-group">
+                            <label>Phone:</label>
+                            <input type="tel" id="edit-phone" value="${(booking.phone || '').replace(/"/g, '&quot;')}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                        </div>
+                        <div class="form-group">
+                            <label>Date:</label>
+                            <input type="date" id="edit-date" value="${booking.date || ''}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                        </div>
+                        <div class="form-group">
+                            <label>Time:</label>
+                            <input type="time" id="edit-time" value="${booking.time || ''}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                        </div>
+                        <div class="form-group">
+                            <label>Status:</label>
+                            <select id="edit-status" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                                <option value="pending" ${booking.status === 'pending' ? 'selected' : ''}>Pending</option>
+                                <option value="confirmed" ${booking.status === 'confirmed' ? 'selected' : ''}>Confirmed</option>
+                                <option value="completed" ${booking.status === 'completed' ? 'selected' : ''}>Completed</option>
+                                <option value="cancelled" ${booking.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+                            </select>
+                        </div>
+                        <div style="margin-top: 20px; display: flex; gap: 10px;">
+                            <button onclick="saveBookingEdit('${bookingId}')" style="padding: 10px 20px; background: #4caf50; color: white; border: none; border-radius: 5px; cursor: pointer; flex: 1;">Save</button>
+                            <button onclick="this.closest('.modal').remove()" style="padding: 10px 20px; background: #ccc; color: #333; border: none; border-radius: 5px; cursor: pointer; flex: 1;">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        // Save booking edit
+        async function saveBookingEdit(bookingId) {
+            if (!db) {
+                alert('Database not available');
+                return;
+            }
+
+            try {
+                const updates = {
+                    name: document.getElementById('edit-name').value.trim(),
+                    email: document.getElementById('edit-email').value.trim(),
+                    phone: document.getElementById('edit-phone').value.trim(),
+                    date: document.getElementById('edit-date').value,
+                    time: document.getElementById('edit-time').value,
+                    status: document.getElementById('edit-status').value,
+                    updatedAt: firebase.firestore.Timestamp.now()
+                };
+
+                await db.collection('bookings').doc(bookingId).update(updates);
+                
+                // Close modal
+                const modal = document.querySelector('.modal');
+                if (modal) modal.remove();
+                
+                // Reload bookings
+                loadBookings();
+                
+                alert('Booking updated successfully!');
+            } catch (error) {
+                console.error('Error updating booking:', error);
+                alert('Error updating booking: ' + error.message);
+            }
+        }
+
+        // Export bookings to CSV
+        function exportBookingsToCSV() {
+            if (bookingsData.length === 0) {
+                alert('No bookings to export');
+                return;
+            }
+
+            let csv = 'Name,Email,Phone,Date,Time,Players,Payment Method,Personal Message,Status,Referral,Special Requests,Emergency Contact,Submitted At\n';
+            
+            bookingsData.forEach(booking => {
+                const name = (booking.name || '').replace(/"/g, '""');
+                const email = (booking.email || '').replace(/"/g, '""');
+                const phone = (booking.phone || '').replace(/"/g, '""');
+                const personalMessage = (booking.personalMessage || '').replace(/"/g, '""');
+                const specialRequests = (booking.specialRequests || '').replace(/"/g, '""');
+                const emergencyContact = (booking.emergencyContact || '').replace(/"/g, '""');
+                const submittedAt = booking.submittedAt || '';
+                
+                csv += `"${name}","${email}","${phone}","${booking.date || ''}","${booking.time || ''}","${booking.players || ''}","${booking.paymentMethod || ''}","${personalMessage}","${booking.status || ''}","${booking.referral || ''}","${specialRequests}","${emergencyContact}","${submittedAt}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'bookings-data.csv';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
         // Initialize on load
         window.addEventListener('load', () => {
             if (initializeFirebase()) {
                 loadActiveSessions();
                 loadCompletedGames();
+                loadBookings();
             }
         });
     </script>
