@@ -344,6 +344,61 @@ class GameEngine {
         }
     }
 
+    // Restore game state from saved data
+    restoreState(stateData) {
+        if (!stateData) return false;
+
+        this.currentLocationIndex = stateData.currentLocationIndex || 0;
+        this.score = stateData.score || 0;
+        this.startTime = stateData.startTime || null;
+        this.elapsedTime = stateData.elapsedTime || 0;
+        this.isTimerRunning = stateData.isTimerRunning || false;
+        this.isTimerPaused = stateData.isTimerPaused || false;
+        this.pauseStartTime = stateData.pauseStartTime || null;
+        this.totalPauseTime = stateData.totalPauseTime || 0;
+        this.playerName = stateData.playerName || '';
+        this.groupMembers = stateData.groupMembers || [];
+        this.completedLocations = stateData.completedLocations || [];
+        
+        // Restore Sets
+        this.hintsUsed = {
+            textHints: stateData.hintsUsed?.textHints instanceof Set 
+                ? stateData.hintsUsed.textHints 
+                : new Set(stateData.hintsUsed?.textHints || []),
+            mapHints: stateData.hintsUsed?.mapHints instanceof Set 
+                ? stateData.hintsUsed.mapHints 
+                : new Set(stateData.hintsUsed?.mapHints || [])
+        };
+        this.answersSubmitted = stateData.answersSubmitted instanceof Set 
+            ? stateData.answersSubmitted 
+            : new Set(stateData.answersSubmitted || []);
+        this.locationNamesSubmitted = stateData.locationNamesSubmitted instanceof Set 
+            ? stateData.locationNamesSubmitted 
+            : new Set(stateData.locationNamesSubmitted || []);
+
+        return true;
+    }
+
+    // Get current state as object (for saving)
+    getState() {
+        return {
+            currentLocationIndex: this.currentLocationIndex,
+            score: this.score,
+            startTime: this.startTime,
+            elapsedTime: this.elapsedTime,
+            isTimerRunning: this.isTimerRunning,
+            isTimerPaused: this.isTimerPaused,
+            pauseStartTime: this.pauseStartTime,
+            totalPauseTime: this.totalPauseTime,
+            playerName: this.playerName,
+            groupMembers: this.groupMembers,
+            completedLocations: this.completedLocations,
+            hintsUsed: this.hintsUsed,
+            answersSubmitted: this.answersSubmitted,
+            locationNamesSubmitted: this.locationNamesSubmitted
+        };
+    }
+
     // Callbacks (to be set by app.js)
     onTimerUpdate(time) {}
     onScoreUpdate(score) {}

@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Treasure Hunt Game - Admin Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #1a1a2e;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .section {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .section h2 {
+            color: #1a1a2e;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e94560;
+            padding-bottom: 10px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #e94560;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #d1344f;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: #1a1a2e;
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        tr:hover {
+            background: #f9f9f9;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+
+        .timestamp {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-solo {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .badge-group {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .export-btn {
+            background: #4caf50;
+        }
+
+        .export-btn:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Treasure Hunt Game - Admin Dashboard</h1>
+
+        <!-- Active Game Sessions -->
+        <div class="section">
+            <h2>📊 Active Game Sessions</h2>
+            <div class="controls">
+                <button onclick="loadActiveSessions()">🔄 Refresh Active Sessions</button>
+                <button onclick="exportToCSV('active')" class="export-btn">📥 Export to CSV</button>
+            </div>
+            <div id="active-stats" class="stats"></div>
+            <div id="active-sessions-container">
+                <div class="loading">Loading active sessions...</div>
+            </div>
+        </div>
+
+        <!-- Completed Games -->
+        <div class="section">
+            <h2>🏆 Completed Games</h2>
+            <div class="controls">
+                <button onclick="loadCompletedGames()">🔄 Refresh Completed Games</button>
+                <button onclick="loadLeaderboard('solo')">⭐ Solo Leaderboard</button>
+                <button onclick="loadLeaderboard('group')">👥 Group Leaderboard</button>
+                <button onclick="exportToCSV('completed')" class="export-btn">📥 Export to CSV</button>
+            </div>
+            <div id="completed-stats" class="stats"></div>
+            <div id="completed-games-container">
+                <div class="loading">Loading completed games...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="firebase-config.js"></script>
+    
+    <script>
+        let db = null;
+        let activeSessionsData = [];
+        let completedGamesData = [];
+
+        // Initialize Firebase
+        function initializeFirebase() {
+            if (typeof firebase === 'undefined' || typeof firebaseConfig === 'undefined') {
+                alert('Firebase not configured. Please check firebase-config.js');
+                return false;
+            }
+
+            try {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                return true;
+            } catch (error) {
+                console.error('Error initializing Firebase:', error);
+                alert('Error initializing Firebase. Check console for details.');
+                return false;
+            }
+        }
+
+        // Format timestamp
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return 'N/A';
+            if (timestamp.toDate) {
+                return timestamp.toDate().toLocaleString();
+            }
+            return new Date(timestamp).toLocaleString();
+        }
+
+        // Format time (seconds to MM:SS)
+        function formatTime(seconds) {
+            if (!seconds) return '00:00';
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Load active game sessions
+        async function loadActiveSessions() {
+            if (!db) {
+                if (!initializeFirebase()) return;
+            }
+
+            const container = document.getElementById('active-sessions-container');
+            container.innerHTML = '<div class="loading">Loading...</div>';
+
+            try {
+                const snapshot = await db.collection('gameSessions')
+                    .orderBy('updatedAt', 'desc')
+                    .get();
+
+                activeSessionsData = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+
+                // Update stats
+                updateActiveStats(activeSessionsData);
+
+                // Display table
+                displayActiveSessions(activeSessionsData);
+            } catch (error) {
+                console.error('Error loading active sessions:', error);
+                container.innerHTML = `<div class="empty-state">Error loading data: ${error.message}</div>`;
+            }
+        }
+
+        // Display active sessions table
+        function displayActiveSessions(data) {
+            const container = document.getElementById('active-sessions-container');
+
+            if (data.length === 0) {
+                container.innerHTML = '<div class="empty-state">No active game sessions</div>';
+                return;
+            }
+
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Session ID</th>
+                            <th>Player Type</th>
+                            <th>Player/Group Name</th>
+                            <th>Group Members</th>
+                            <th>Current Location</th>
+                            <th>Score</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                            <th>Last Updated</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            data.forEach(session => {
+                const locationNum = session.currentLocationIndex || 0;
+                const locationText = locationNum === 0 ? 'Starting Point' : `Location ${locationNum}`;
+                const status = session.isTimerRunning 
+                    ? (session.isTimerPaused ? '⏸️ Paused' : '▶️ Running') 
+                    : '⏹️ Stopped';
+                const playerType = session.playerType || 'solo';
+                const members = session.groupMembers && session.groupMembers.length > 0 
+                    ? session.groupMembers.join(', ') 
+                    : '-';
+
+                html += `
+                    <tr>
+                        <td>${session.sessionId || session.id}</td>
+                        <td><span class="badge badge-${playerType}">${playerType.toUpperCase()}</span></td>
+                        <td>${session.playerName || 'N/A'}</td>
+                        <td>${members}</td>
+                        <td>${locationText}</td>
+                        <td>${session.score || 0} ⭐</td>
+                        <td>${formatTime(session.elapsedTime)}</td>
+                        <td>${status}</td>
+                        <td class="timestamp">${formatTimestamp(session.updatedAt)}</td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // Update active sessions stats
+        function updateActiveStats(data) {
+            const statsContainer = document.getElementById('active-stats');
+            const soloCount = data.filter(s => s.playerType === 'solo').length;
+            const groupCount = data.filter(s => s.playerType === 'group').length;
+            const totalScore = data.reduce((sum, s) => sum + (s.score || 0), 0);
+
+            statsContainer.innerHTML = `
+                <div class="stat-card">
+                    <h3>Total Active Sessions</h3>
+                    <div class="value">${data.length}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Solo Players</h3>
+                    <div class="value">${soloCount}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Groups</h3>
+                    <div class="value">${groupCount}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Score</h3>
+                    <div class="value">${totalScore}</div>
+                </div>
+            `;
+        }
+
+        // Load completed games
+        async function loadCompletedGames() {
+            if (!db) {
+                if (!initializeFirebase()) return;
+            }
+
+            const container = document.getElementById('completed-games-container');
+            container.innerHTML = '<div class="loading">Loading...</div>';
+
+            try {
+                const snapshot = await db.collection('completedGames')
+                    .orderBy('completedAt', 'desc')
+                    .limit(100)
+                    .get();
+
+                completedGamesData = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+
+                // Update stats
+                updateCompletedStats(completedGamesData);
+
+                // Display table
+                displayCompletedGames(completedGamesData);
+            } catch (error) {
+                console.error('Error loading completed games:', error);
+                container.innerHTML = `<div class="empty-state">Error loading data: ${error.message}</div>`;
+            }
+        }
+
+        // Display completed games table
+        function displayCompletedGames(data) {
+            const container = document.getElementById('completed-games-container');
+
+            if (data.length === 0) {
+                container.innerHTML = '<div class="empty-state">No completed games yet</div>';
+                return;
+            }
+
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Player Type</th>
+                            <th>Player/Group Name</th>
+                            <th>Group Members</th>
+                            <th>Final Score</th>
+                            <th>Final Time</th>
+                            <th>Calculated Score</th>
+                            <th>Locations Completed</th>
+                            <th>Completed At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            data.forEach((game, index) => {
+                const playerType = game.playerType || 'solo';
+                const members = game.groupMembers && game.groupMembers.length > 0 
+                    ? game.groupMembers.join(', ') 
+                    : '-';
+                const locationsCount = game.completedLocations ? game.completedLocations.length : 0;
+
+                html += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td><span class="badge badge-${playerType}">${playerType.toUpperCase()}</span></td>
+                        <td>${game.playerName || 'N/A'}</td>
+                        <td>${members}</td>
+                        <td><strong>${game.finalScore || 0} ⭐</strong></td>
+                        <td>${formatTime(game.finalTime)}</td>
+                        <td><strong>${game.calculatedScore || 0}</strong></td>
+                        <td>${locationsCount}/10</td>
+                        <td class="timestamp">${formatTimestamp(game.completedAt)}</td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // Update completed games stats
+        function updateCompletedStats(data) {
+            const statsContainer = document.getElementById('completed-stats');
+            const soloCount = data.filter(g => g.playerType === 'solo').length;
+            const groupCount = data.filter(g => g.playerType === 'group').length;
+            const avgScore = data.length > 0 
+                ? Math.round(data.reduce((sum, g) => sum + (g.finalScore || 0), 0) / data.length)
+                : 0;
+            const avgTime = data.length > 0
+                ? Math.round(data.reduce((sum, g) => sum + (g.finalTime || 0), 0) / data.length)
+                : 0;
+
+            statsContainer.innerHTML = `
+                <div class="stat-card">
+                    <h3>Total Completed</h3>
+                    <div class="value">${data.length}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Solo Completions</h3>
+                    <div class="value">${soloCount}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Group Completions</h3>
+                    <div class="value">${groupCount}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Avg Score</h3>
+                    <div class="value">${avgScore} ⭐</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Avg Time</h3>
+                    <div class="value">${formatTime(avgTime)}</div>
+                </div>
+            `;
+        }
+
+        // Load leaderboard
+        async function loadLeaderboard(type) {
+            if (!db) {
+                if (!initializeFirebase()) return;
+            }
+
+            const container = document.getElementById('completed-games-container');
+            container.innerHTML = '<div class="loading">Loading leaderboard...</div>';
+
+            try {
+                const snapshot = await db.collection('completedGames')
+                    .where('playerType', '==', type)
+                    .orderBy('calculatedScore', 'desc')
+                    .limit(50)
+                    .get();
+
+                completedGamesData = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+
+                updateCompletedStats(completedGamesData);
+                displayCompletedGames(completedGamesData);
+            } catch (error) {
+                console.error('Error loading leaderboard:', error);
+                
+                // Check if it's an index error
+                if (error.message && error.message.includes('index')) {
+                    // Extract the index creation URL if present
+                    const indexUrlMatch = error.message.match(/https:\/\/[^\s]+/);
+                    const indexUrl = indexUrlMatch ? indexUrlMatch[0] : null;
+                    
+                    let errorHtml = `
+                        <div class="empty-state">
+                            <h3 style="color: #e94560; margin-bottom: 15px;">⚠️ Index Required</h3>
+                            <p style="margin-bottom: 15px;">Firestore needs to create an index for this query.</p>
+                    `;
+                    
+                    if (indexUrl) {
+                        errorHtml += `
+                            <p style="margin-bottom: 20px;">
+                                <a href="${indexUrl}" target="_blank" style="color: #667eea; text-decoration: underline;">
+                                    Click here to create the index automatically
+                                </a>
+                            </p>
+                        `;
+                    }
+                    
+                    errorHtml += `
+                            <p style="font-size: 12px; color: #666;">
+                                After creating the index, wait 1-2 minutes for it to build, then refresh this page.
+                            </p>
+                            <p style="font-size: 12px; color: #666; margin-top: 10px;">
+                                Or see FIREBASE-SETUP.md Step 7 for manual index creation.
+                            </p>
+                        </div>
+                    `;
+                    
+                    container.innerHTML = errorHtml;
+                } else {
+                    container.innerHTML = `<div class="empty-state">Error loading leaderboard: ${error.message}</div>`;
+                }
+            }
+        }
+
+        // Export to CSV
+        function exportToCSV(type) {
+            let data, filename;
+            
+            if (type === 'active') {
+                data = activeSessionsData;
+                filename = 'active-sessions.csv';
+            } else {
+                data = completedGamesData;
+                filename = 'completed-games.csv';
+            }
+
+            if (data.length === 0) {
+                alert('No data to export');
+                return;
+            }
+
+            let csv = '';
+            
+            if (type === 'active') {
+                csv = 'Session ID,Player Type,Player Name,Group Members,Current Location,Score,Time,Status,Last Updated\n';
+                data.forEach(session => {
+                    const locationNum = session.currentLocationIndex || 0;
+                    const locationText = locationNum === 0 ? 'Starting Point' : `Location ${locationNum}`;
+                    const members = session.groupMembers ? session.groupMembers.join('; ') : '';
+                    const status = session.isTimerRunning 
+                        ? (session.isTimerPaused ? 'Paused' : 'Running') 
+                        : 'Stopped';
+                    
+                    csv += `"${session.sessionId || session.id}","${session.playerType || 'solo'}","${session.playerName || ''}","${members}","${locationText}","${session.score || 0}","${formatTime(session.elapsedTime)}","${status}","${formatTimestamp(session.updatedAt)}"\n`;
+                });
+            } else {
+                csv = '#,Player Type,Player Name,Group Members,Final Score,Final Time,Calculated Score,Locations Completed,Completed At\n';
+                data.forEach((game, index) => {
+                    const members = game.groupMembers ? game.groupMembers.join('; ') : '';
+                    const locationsCount = game.completedLocations ? game.completedLocations.length : 0;
+                    
+                    csv += `${index + 1},"${game.playerType || 'solo'}","${game.playerName || ''}","${members}","${game.finalScore || 0}","${formatTime(game.finalTime)}","${game.calculatedScore || 0}","${locationsCount}/10","${formatTimestamp(game.completedAt)}"\n`;
+                });
+            }
+
+            // Download CSV
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            if (initializeFirebase()) {
+                loadActiveSessions();
+                loadCompletedGames();
+            }
+        });
+    </script>
+</body>
+</html>

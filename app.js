@@ -3,9 +3,16 @@
 let gameEngine;
 let backgroundMusic;
 let isMusicPlaying = false;
+let currentPlayerType = 'solo'; // Track current player type (solo/group)
+let saveStateInterval = null; // Interval for auto-saving game state
 
 // Initialize app when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize Firebase
+    if (window.DatabaseService) {
+        window.DatabaseService.initializeFirebase();
+    }
+    
     gameEngine = new GameEngine();
     
     // Initialize background music
@@ -24,8 +31,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Set current year in final screen
     document.getElementById('current-year').textContent = new Date().getFullYear();
     
+    // Check for saved game state and resume if available
+    await checkForSavedGame();
+    
     // Set up event listeners
     setupEventListeners();
+    
+    // Auto-save game state every 30 seconds (only when game is running)
+    startAutoSave();
 });
 
 // Set up all event listeners
@@ -124,7 +137,7 @@ function startAfterTutorial() {
 }
 
 // Start game from welcome screen
-function startGame() {
+async function startGame() {
     const playerName = document.getElementById('player-name').value.trim();
     const groupSize = document.getElementById('group-size').value;
     const groupNames = document.getElementById('group-names').value.trim();
@@ -140,6 +153,14 @@ function startGame() {
         return;
     }
     
+    // Clear any previous game session
+    if (window.DatabaseService) {
+        await window.DatabaseService.deleteGameSession();
+    }
+    
+    // Store player type
+    currentPlayerType = groupSize;
+    
     // Initialize game engine (personal message will be fetched from database later)
     gameEngine.initialize(playerName, groupSize, groupNames, null);
     
@@ -152,12 +173,15 @@ function startGame() {
 }
 
 // Start gameplay when player arrives at starting point
-function startGameplay() {
+async function startGameplay() {
     // Start timer
     gameEngine.startTimer();
     
     // Move to first location
     gameEngine.nextLocation();
+    
+    // Save initial game state
+    await saveGameState();
     
     // Show game screen
     showScreen('game-screen');
@@ -239,6 +263,9 @@ function handleSubmitLocationName() {
         locationInfoSection.style.display = 'block';
         locationInfoSection.classList.add('scroll-reveal');
         
+        // Save game state after correct location name
+        saveGameState();
+        
         // Show question section after a short delay with scroll animation
         setTimeout(() => {
             showQuestionSection();
@@ -300,6 +327,9 @@ function submitAnswer() {
             // Update locations panel
             updateLocationsPanel();
             
+            // Save game state after correct answer
+            saveGameState();
+            
             // Check if game is complete
             if (gameEngine.isGameComplete()) {
                 setTimeout(() => {
@@ -307,10 +337,12 @@ function submitAnswer() {
                 }, 2000);
             } else {
                 // Move to next location after delay with fade-in animation
-                setTimeout(() => {
+                setTimeout(async () => {
                     gameEngine.nextLocation();
                     loadCurrentLocation();
                     showMessage('', ''); // Clear message
+                    // Save state after moving to next location
+                    await saveGameState();
                 }, 2000);
             }
         } else {
@@ -341,22 +373,26 @@ function showInputError(inputElement, message) {
 }
 
 // Show text hint
-function showTextHint() {
+async function showTextHint() {
     const hint = gameEngine.useTextHint();
     if (hint) {
         showHintModal('Text Hint', hint, false);
         updateScoreDisplay(gameEngine.getScore());
         resetHintButtons();
+        // Save state after using hint
+        await saveGameState();
     }
 }
 
 // Show map hint
-function showMapHint() {
+async function showMapHint() {
     const hintData = gameEngine.useMapHint();
     if (hintData) {
         showHintModal('Map Hint', hintData.text, true);
         updateScoreDisplay(gameEngine.getScore());
         resetHintButtons();
+        // Save state after using hint
+        await saveGameState();
     }
 }
 
@@ -447,6 +483,19 @@ async function showFinalScreen() {
     
     // Get final stats
     const stats = gameEngine.getFinalStats();
+    
+    // Save completed game to database
+    if (window.DatabaseService) {
+        const completedGameData = {
+            playerType: currentPlayerType,
+            playerName: gameEngine.playerName,
+            groupMembers: gameEngine.groupMembers,
+            score: stats.score,
+            time: gameEngine.elapsedTime, // in seconds
+            completedLocations: gameEngine.completedLocations
+        };
+        await window.DatabaseService.saveCompletedGame(completedGameData);
+    }
     
     // Update final screen
     document.getElementById('final-time').textContent = stats.time;
@@ -627,4 +676,92 @@ function toggleLocationsPanel() {
     
     panel.classList.toggle('collapsed');
     btn.textContent = panel.classList.contains('collapsed') ? '+' : '−';
+}
+
+// Save game state to database
+async function saveGameState() {
+    if (!window.DatabaseService || !gameEngine) return;
+    
+    try {
+        await window.DatabaseService.saveGameState(gameEngine, currentPlayerType);
+    } catch (error) {
+        console.error('Error saving game state:', error);
+    }
+}
+
+// Auto-save game state periodically
+function startAutoSave() {
+    // Save every 30 seconds if game is running
+    saveStateInterval = setInterval(() => {
+        if (gameEngine && gameEngine.isTimerRunning) {
+            saveGameState();
+        }
+    }, 30000); // 30 seconds
+}
+
+// Stop auto-save
+function stopAutoSave() {
+    if (saveStateInterval) {
+        clearInterval(saveStateInterval);
+        saveStateInterval = null;
+    }
+}
+
+// Check for saved game state and resume if available
+async function checkForSavedGame() {
+    if (!window.DatabaseService) return;
+    
+    try {
+        const savedState = await window.DatabaseService.loadGameState();
+        if (savedState && savedState.currentLocationIndex > 0) {
+            // Ask user if they want to resume
+            const resume = confirm('We found a saved game. Would you like to resume where you left off?');
+            if (resume) {
+                resumeGame(savedState);
+            } else {
+                // Clear saved state if user doesn't want to resume
+                await window.DatabaseService.deleteGameSession();
+            }
+        }
+    } catch (error) {
+        console.error('Error checking for saved game:', error);
+    }
+}
+
+// Resume game from saved state
+function resumeGame(savedState) {
+    // Restore game engine state
+    gameEngine.restoreState(savedState);
+    currentPlayerType = savedState.playerType || 'solo';
+    
+    // Update UI
+    updateScoreDisplay(gameEngine.getScore());
+    updateTimerDisplay(gameEngine.elapsedTime);
+    updateLocationsPanel();
+    
+    // Restore timer if it was running
+    if (savedState.isTimerRunning && !savedState.isTimerPaused) {
+        // Calculate remaining time
+        const now = Date.now();
+        const elapsedSinceSave = Math.floor((now - (savedState.startTime || now)) / 1000);
+        gameEngine.elapsedTime = savedState.elapsedTime + elapsedSinceSave;
+        gameEngine.startTime = now - (gameEngine.elapsedTime * 1000) - savedState.totalPauseTime;
+        gameEngine.startTimer();
+    } else if (savedState.isTimerPaused) {
+        // Timer was paused, restore pause state
+        gameEngine.isTimerRunning = true;
+        gameEngine.isTimerPaused = true;
+        gameEngine.startTime = savedState.startTime;
+        gameEngine.totalPauseTime = savedState.totalPauseTime;
+    }
+    
+    // Show appropriate screen based on current location
+    if (savedState.currentLocationIndex === 0) {
+        showScreen('starting-point-screen');
+        document.getElementById('starting-location-name').textContent = gameData.startingLocation.name;
+        document.getElementById('starting-location-address').textContent = gameData.startingLocation.address;
+    } else {
+        showScreen('game-screen');
+        loadCurrentLocation();
+    }
 }
