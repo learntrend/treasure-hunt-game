@@ -781,8 +781,8 @@ body::before {
 
 /* Feedback Modal */
 .feedback-modal-content {
-    max-width: 500px;
-    text-align: center;
+    max-width: 600px;
+    text-align: left;
 }
 
 .feedback-body {
@@ -793,39 +793,176 @@ body::before {
     font-size: 4rem;
     margin-bottom: 20px;
     animation: pulse 2s ease-in-out infinite;
-}
-
-.feedback-message {
-    font-size: 1.3rem;
-    font-weight: 600;
-    color: var(--primary-color);
-    margin-bottom: 15px;
-    line-height: 1.6;
-}
-
-.feedback-submessage {
-    font-size: 1rem;
-    color: #666;
-    margin-bottom: 30px;
-    line-height: 1.6;
-}
-
-.feedback-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    margin-top: 25px;
-}
-
-.feedback-link {
-    text-decoration: none;
-    display: inline-block;
     text-align: center;
 }
 
-.feedback-link:hover {
+.feedback-intro {
+    font-size: 1rem;
+    color: #666;
+    margin-bottom: 25px;
+    text-align: center;
+    line-height: 1.6;
+}
+
+/* Feedback Form */
+#feedback-form {
+    display: block;
+}
+
+.form-group {
+    margin-bottom: 25px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+}
+
+.required {
+    color: var(--accent-color);
+}
+
+.rating-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.rating-btn {
+    background: rgba(102, 126, 234, 0.1);
+    border: 2px solid rgba(102, 126, 234, 0.3);
+    border-radius: 8px;
+    padding: 10px 15px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    flex: 1;
+    min-width: 60px;
+}
+
+.rating-btn:hover {
+    background: rgba(102, 126, 234, 0.2);
+    border-color: rgba(102, 126, 234, 0.5);
     transform: translateY(-2px);
-    box-shadow: var(--shadow);
+}
+
+.rating-btn.selected {
+    background: var(--bg-gradient);
+    border-color: var(--accent-color);
+    color: white;
+    box-shadow: var(--shadow-light);
+}
+
+.checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: rgba(102, 126, 234, 0.05);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s;
+    font-weight: normal;
+}
+
+.checkbox-label:hover {
+    background: rgba(102, 126, 234, 0.1);
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    margin: 0;
+}
+
+.checkbox-label span {
+    flex: 1;
+    color: var(--text-dark);
+}
+
+.form-group select,
+.form-group textarea,
+.form-group input[type="email"] {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: 'Inter', sans-serif;
+    transition: border-color 0.3s;
+    margin-top: 5px;
+}
+
+.form-group select:focus,
+.form-group textarea:focus,
+.form-group input[type="email"]:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.feedback-form-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 30px;
+}
+
+.feedback-form-actions button {
+    margin-bottom: 0;
+}
+
+.feedback-success {
+    text-align: center;
+    padding: 20px 0;
+}
+
+.feedback-success h3 {
+    font-family: 'Cinzel', serif;
+    font-size: 1.8rem;
+    color: var(--primary-color);
+    margin-bottom: 15px;
+}
+
+.feedback-success p {
+    font-size: 1.1rem;
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 25px;
+}
+
+.form-error {
+    color: var(--accent-color);
+    font-size: 0.9rem;
+    margin-top: 5px;
+    display: none;
+}
+
+.form-group.error .form-error {
+    display: block;
+}
+
+.form-group.error select,
+.form-group.error textarea,
+.form-group.error input {
+    border-color: var(--accent-color);
 }
 
 /* Final Screen */
@@ -1209,5 +1346,29 @@ input[type="text"].success {
         right: 20px;
         left: 20px;
         max-height: 300px;
+    }
+    
+    .feedback-modal-content {
+        max-width: 95%;
+        padding: 20px;
+    }
+    
+    .rating-buttons {
+        gap: 5px;
+    }
+    
+    .rating-btn {
+        min-width: 50px;
+        padding: 8px 10px;
+        font-size: 1rem;
+    }
+    
+    .checkbox-group {
+        gap: 8px;
+    }
+    
+    .checkbox-label {
+        padding: 8px;
+        font-size: 0.9rem;
     }
 }

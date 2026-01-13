@@ -61,6 +61,11 @@ function getSessionId() {
     return sessionId;
 }
 
+// Set session ID
+function setSessionId(sessionId) {
+    localStorage.setItem('gameSessionId', sessionId);
+}
+
 // Clear session ID
 function clearSessionId() {
     localStorage.removeItem('gameSessionId');
@@ -307,6 +312,7 @@ async function saveCompletedGame(gameStats) {
             finalTime: gameStats.time, // in seconds
             calculatedScore: calculateFinalScore(gameStats.score, gameStats.time),
             completedLocations: gameStats.completedLocations || [],
+            hintsUsed: gameStats.hintsUsed || { textHints: [], mapHints: [] }, // Include hints used
             completedAt: firebase.firestore.Timestamp.now()
         };
 
@@ -403,6 +409,181 @@ async function deleteGameSession() {
     }
 }
 
+// Save feedback to database
+async function saveFeedback(feedbackData) {
+    if (!db || !isInitialized) {
+        console.warn('Database not initialized. Feedback not saved.');
+        return false;
+    }
+
+    try {
+        const feedbackDoc = {
+            ...feedbackData,
+            submittedAt: firebase.firestore.Timestamp.now(),
+            playerName: feedbackData.playerName || 'Anonymous',
+            playerType: feedbackData.playerType || 'unknown',
+            gameScore: feedbackData.gameScore || 0,
+            gameTime: feedbackData.gameTime || 0
+        };
+
+        await db.collection('feedback').add(feedbackDoc);
+        return true;
+    } catch (error) {
+        console.error('Error saving feedback:', error);
+        return false;
+    }
+}
+
+// Search for saved games by player name (same day, within 2 hours)
+async function searchSavedGamesByPlayerName(playerName) {
+    if (!db || !isInitialized) {
+        console.warn('Database not initialized.');
+        throw new Error('Database not initialized. Please check your Firebase connection.');
+    }
+
+    if (!playerName || playerName.trim() === '') {
+        throw new Error('Player name is required.');
+    }
+
+    try {
+        const now = new Date();
+        const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+        
+        // Get today's date at midnight for same-day filtering
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        
+        console.log('Searching for games with playerName:', playerName.trim());
+        
+        const snapshot = await db.collection('gameSessions')
+            .where('playerName', '==', playerName.trim())
+            .get();
+        
+        console.log('Found', snapshot.size, 'documents matching playerName');
+
+        const games = [];
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            
+            // Get last updated time (use updatedAt, fallback to createdAt)
+            let lastUpdated;
+            if (data.updatedAt) {
+                lastUpdated = data.updatedAt.toDate ? data.updatedAt.toDate() : new Date(data.updatedAt);
+            } else if (data.createdAt) {
+                lastUpdated = data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt);
+            } else {
+                // Skip if no timestamp available
+                return;
+            }
+            
+            // Filter: same day and within 2 hours
+            const isSameDay = lastUpdated >= today;
+            const isWithin2Hours = lastUpdated >= twoHoursAgo;
+            
+            if (isSameDay && isWithin2Hours) {
+                games.push({
+                    id: doc.id,
+                    playerName: data.playerName,
+                    playerType: data.playerType,
+                    currentLocationIndex: data.currentLocationIndex || 0,
+                    score: data.score || 0,
+                    elapsedTime: data.elapsedTime || 0,
+                    lastUpdated: lastUpdated,
+                    sessionId: data.sessionId
+                });
+            }
+        });
+        
+        // Sort by last updated (most recent first)
+        games.sort((a, b) => b.lastUpdated - a.lastUpdated);
+        
+        console.log('Filtered to', games.length, 'games from today within 2 hours');
+        
+        return games;
+    } catch (error) {
+        console.error('Error searching saved games:', error);
+        // Re-throw the error so the caller can handle it
+        throw error;
+    }
+}
+
+// Load game state by session ID (document ID) - returns raw data
+async function loadGameStateBySessionId(documentId) {
+    if (!db || !isInitialized) {
+        console.warn('Database not initialized.');
+        return null;
+    }
+
+    if (!documentId) {
+        console.error('Document ID is required.');
+        return null;
+    }
+
+    try {
+        console.log('Loading game state for document ID:', documentId);
+        const sessionRef = db.collection('gameSessions').doc(documentId);
+        const docSnap = await sessionRef.get();
+
+        // Check if document exists - handle both exists() method and data() check
+        let exists = false;
+        let data = null;
+        
+        if (typeof docSnap.exists === 'function') {
+            exists = docSnap.exists();
+            if (exists) {
+                data = docSnap.data();
+            }
+        } else {
+            // Fallback: try to get data directly
+            data = docSnap.data();
+            exists = data !== undefined && data !== null;
+        }
+
+        if (exists && data) {
+            console.log('Game state found, raw data:', data);
+            
+            // Set the session ID so future saves use this session
+            if (data.sessionId) {
+                setSessionId(data.sessionId);
+            } else {
+                // If no sessionId in data, use the document ID
+                setSessionId(documentId);
+            }
+            
+            // Return raw data with converted timestamps
+            const gameState = {
+                currentLocationIndex: data.currentLocationIndex || 0,
+                score: data.score || 0,
+                startTime: data.startTime ? (data.startTime.toMillis ? data.startTime.toMillis() : (typeof data.startTime === 'number' ? data.startTime : null)) : null,
+                elapsedTime: data.elapsedTime || 0,
+                isTimerRunning: data.isTimerRunning || false,
+                isTimerPaused: data.isTimerPaused || false,
+                pauseStartTime: data.pauseStartTime ? (data.pauseStartTime.toMillis ? data.pauseStartTime.toMillis() : (typeof data.pauseStartTime === 'number' ? data.pauseStartTime : null)) : null,
+                totalPauseTime: data.totalPauseTime || 0,
+                playerName: data.playerName || '',
+                groupMembers: data.groupMembers || [],
+                completedLocations: data.completedLocations || [],
+                hintsUsed: {
+                    textHints: new Set(data.hintsUsed?.textHints || []),
+                    mapHints: new Set(data.hintsUsed?.mapHints || [])
+                },
+                answersSubmitted: new Set(data.answersSubmitted || []),
+                locationNamesSubmitted: new Set(data.locationNamesSubmitted || []),
+                playerType: data.playerType || 'solo'
+            };
+            
+            console.log('Game state converted successfully:', gameState);
+            return gameState;
+        } else {
+            console.warn('Document does not exist or has no data:', documentId);
+            return null;
+        }
+    } catch (error) {
+        console.error('Error loading game state by session ID:', error);
+        console.error('Error details:', error.message, error.stack);
+        return null;
+    }
+}
+
 // Export functions as global object
 window.DatabaseService = {
     saveGameState,
@@ -412,6 +593,9 @@ window.DatabaseService = {
     getGroupLeaderboard,
     deleteGameSession,
     calculateFinalScore,
+    saveFeedback,
+    searchSavedGamesByPlayerName,
+    loadGameStateBySessionId,
     isInitialized: () => isInitialized,
     initializeFirebase
 };

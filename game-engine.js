@@ -3,7 +3,7 @@
 class GameEngine {
     constructor() {
         this.currentLocationIndex = 0; // 0 = starting point, 1-10 = locations
-        this.score = 0;
+        this.score = 100; // Start with 100 points so hints can be used on first location
         this.startTime = null;
         this.elapsedTime = 0;
         this.timerInterval = null;
@@ -324,7 +324,7 @@ class GameEngine {
     // Reset game
     reset() {
         this.currentLocationIndex = 0;
-        this.score = 0;
+        this.score = 100; // Reset to 100 points (starting bonus)
         this.startTime = null;
         this.elapsedTime = 0;
         this.isTimerRunning = false;

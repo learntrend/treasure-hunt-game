@@ -295,6 +295,8 @@
                             <th>Current Location</th>
                             <th>Score</th>
                             <th>Time</th>
+                            <th>Text Hints Used</th>
+                            <th>Map Hints Used</th>
                             <th>Status</th>
                             <th>Last Updated</th>
                         </tr>
@@ -313,6 +315,22 @@
                     ? session.groupMembers.join(', ') 
                     : '-';
 
+                // Format hints used
+                const textHints = session.hintsUsed?.textHints || [];
+                const mapHints = session.hintsUsed?.mapHints || [];
+                
+                const formatHints = (hintArray) => {
+                    if (!hintArray || hintArray.length === 0) return '<span style="color: #999;">None</span>';
+                    const sortedHints = [...hintArray].sort((a, b) => a - b);
+                    return sortedHints.map(locId => {
+                        const locNum = locId === 0 ? 'Starting Point' : `Location ${locId}`;
+                        return `<span style="background: #e3f2fd; padding: 2px 6px; border-radius: 3px; margin: 2px; display: inline-block; font-size: 11px;">${locNum}</span>`;
+                    }).join('');
+                };
+
+                const textHintsDisplay = formatHints(textHints);
+                const mapHintsDisplay = formatHints(mapHints);
+
                 html += `
                     <tr>
                         <td>${session.sessionId || session.id}</td>
@@ -322,6 +340,8 @@
                         <td>${locationText}</td>
                         <td>${session.score || 0} ⭐</td>
                         <td>${formatTime(session.elapsedTime)}</td>
+                        <td style="font-size: 12px;">${textHintsDisplay}</td>
+                        <td style="font-size: 12px;">${mapHintsDisplay}</td>
                         <td>${status}</td>
                         <td class="timestamp">${formatTimestamp(session.updatedAt)}</td>
                     </tr>
@@ -338,6 +358,8 @@
             const soloCount = data.filter(s => s.playerType === 'solo').length;
             const groupCount = data.filter(s => s.playerType === 'group').length;
             const totalScore = data.reduce((sum, s) => sum + (s.score || 0), 0);
+            const totalTextHints = data.reduce((sum, s) => sum + ((s.hintsUsed?.textHints || []).length), 0);
+            const totalMapHints = data.reduce((sum, s) => sum + ((s.hintsUsed?.mapHints || []).length), 0);
 
             statsContainer.innerHTML = `
                 <div class="stat-card">
@@ -355,6 +377,14 @@
                 <div class="stat-card">
                     <h3>Total Score</h3>
                     <div class="value">${totalScore}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Text Hints Used</h3>
+                    <div class="value">${totalTextHints}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Map Hints Used</h3>
+                    <div class="value">${totalMapHints}</div>
                 </div>
             `;
         }
@@ -411,6 +441,8 @@
                             <th>Final Time</th>
                             <th>Calculated Score</th>
                             <th>Locations Completed</th>
+                            <th>Text Hints Used</th>
+                            <th>Map Hints Used</th>
                             <th>Completed At</th>
                         </tr>
                     </thead>
@@ -424,6 +456,22 @@
                     : '-';
                 const locationsCount = game.completedLocations ? game.completedLocations.length : 0;
 
+                // Format hints used
+                const textHints = game.hintsUsed?.textHints || [];
+                const mapHints = game.hintsUsed?.mapHints || [];
+                
+                const formatHints = (hintArray) => {
+                    if (!hintArray || hintArray.length === 0) return '<span style="color: #999;">None</span>';
+                    const sortedHints = [...hintArray].sort((a, b) => a - b);
+                    return sortedHints.map(locId => {
+                        const locNum = locId === 0 ? 'Starting Point' : `Location ${locId}`;
+                        return `<span style="background: #e3f2fd; padding: 2px 6px; border-radius: 3px; margin: 2px; display: inline-block; font-size: 11px;">${locNum}</span>`;
+                    }).join('');
+                };
+
+                const textHintsDisplay = formatHints(textHints);
+                const mapHintsDisplay = formatHints(mapHints);
+
                 html += `
                     <tr>
                         <td>${index + 1}</td>
@@ -434,6 +482,8 @@
                         <td>${formatTime(game.finalTime)}</td>
                         <td><strong>${game.calculatedScore || 0}</strong></td>
                         <td>${locationsCount}/10</td>
+                        <td style="font-size: 12px;">${textHintsDisplay}</td>
+                        <td style="font-size: 12px;">${mapHintsDisplay}</td>
                         <td class="timestamp">${formatTimestamp(game.completedAt)}</td>
                     </tr>
                 `;
@@ -454,6 +504,8 @@
             const avgTime = data.length > 0
                 ? Math.round(data.reduce((sum, g) => sum + (g.finalTime || 0), 0) / data.length)
                 : 0;
+            const totalTextHints = data.reduce((sum, g) => sum + ((g.hintsUsed?.textHints || []).length), 0);
+            const totalMapHints = data.reduce((sum, g) => sum + ((g.hintsUsed?.mapHints || []).length), 0);
 
             statsContainer.innerHTML = `
                 <div class="stat-card">
@@ -475,6 +527,14 @@
                 <div class="stat-card">
                     <h3>Avg Time</h3>
                     <div class="value">${formatTime(avgTime)}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Text Hints</h3>
+                    <div class="value">${totalTextHints}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Map Hints</h3>
+                    <div class="value">${totalMapHints}</div>
                 </div>
             `;
         }
@@ -564,7 +624,7 @@
             let csv = '';
             
             if (type === 'active') {
-                csv = 'Session ID,Player Type,Player Name,Group Members,Current Location,Score,Time,Status,Last Updated\n';
+                csv = 'Session ID,Player Type,Player Name,Group Members,Current Location,Score,Time,Text Hints Used,Map Hints Used,Status,Last Updated\n';
                 data.forEach(session => {
                     const locationNum = session.currentLocationIndex || 0;
                     const locationText = locationNum === 0 ? 'Starting Point' : `Location ${locationNum}`;
@@ -572,16 +632,32 @@
                     const status = session.isTimerRunning 
                         ? (session.isTimerPaused ? 'Paused' : 'Running') 
                         : 'Stopped';
+                    const textHints = session.hintsUsed?.textHints || [];
+                    const mapHints = session.hintsUsed?.mapHints || [];
+                    const textHintsStr = textHints.length > 0 
+                        ? textHints.sort((a,b) => a-b).map(id => id === 0 ? 'Starting Point' : `Location ${id}`).join('; ')
+                        : 'None';
+                    const mapHintsStr = mapHints.length > 0 
+                        ? mapHints.sort((a,b) => a-b).map(id => id === 0 ? 'Starting Point' : `Location ${id}`).join('; ')
+                        : 'None';
                     
-                    csv += `"${session.sessionId || session.id}","${session.playerType || 'solo'}","${session.playerName || ''}","${members}","${locationText}","${session.score || 0}","${formatTime(session.elapsedTime)}","${status}","${formatTimestamp(session.updatedAt)}"\n`;
+                    csv += `"${session.sessionId || session.id}","${session.playerType || 'solo'}","${session.playerName || ''}","${members}","${locationText}","${session.score || 0}","${formatTime(session.elapsedTime)}","${textHintsStr}","${mapHintsStr}","${status}","${formatTimestamp(session.updatedAt)}"\n`;
                 });
             } else {
-                csv = '#,Player Type,Player Name,Group Members,Final Score,Final Time,Calculated Score,Locations Completed,Completed At\n';
+                csv = '#,Player Type,Player Name,Group Members,Final Score,Final Time,Calculated Score,Locations Completed,Text Hints Used,Map Hints Used,Completed At\n';
                 data.forEach((game, index) => {
                     const members = game.groupMembers ? game.groupMembers.join('; ') : '';
                     const locationsCount = game.completedLocations ? game.completedLocations.length : 0;
+                    const textHints = game.hintsUsed?.textHints || [];
+                    const mapHints = game.hintsUsed?.mapHints || [];
+                    const textHintsStr = textHints.length > 0 
+                        ? textHints.sort((a,b) => a-b).map(id => id === 0 ? 'Starting Point' : `Location ${id}`).join('; ')
+                        : 'None';
+                    const mapHintsStr = mapHints.length > 0 
+                        ? mapHints.sort((a,b) => a-b).map(id => id === 0 ? 'Starting Point' : `Location ${id}`).join('; ')
+                        : 'None';
                     
-                    csv += `${index + 1},"${game.playerType || 'solo'}","${game.playerName || ''}","${members}","${game.finalScore || 0}","${formatTime(game.finalTime)}","${game.calculatedScore || 0}","${locationsCount}/10","${formatTimestamp(game.completedAt)}"\n`;
+                    csv += `${index + 1},"${game.playerType || 'solo'}","${game.playerName || ''}","${members}","${game.finalScore || 0}","${formatTime(game.finalTime)}","${game.calculatedScore || 0}","${locationsCount}/10","${textHintsStr}","${mapHintsStr}","${formatTimestamp(game.completedAt)}"\n`;
                 });
             }
 

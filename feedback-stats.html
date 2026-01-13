@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Treasure Hunt Game - Feedback Statistics</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #1a1a2e;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .section {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .section h2 {
+            color: #1a1a2e;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e94560;
+            padding-bottom: 10px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #e94560;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #d1344f;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: #1a1a2e;
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        tr:hover {
+            background: #f9f9f9;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+
+        .timestamp {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-solo {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .badge-group {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .rating-badge {
+            background: #ffd700;
+            color: #1a1a2e;
+            font-weight: bold;
+        }
+
+        .export-btn {
+            background: #4caf50;
+        }
+
+        .export-btn:hover {
+            background: #45a049;
+        }
+
+        .enjoyed-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .enjoyed-tag {
+            background: #e3f2fd;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #1976d2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Feedback Statistics</h1>
+
+        <!-- Summary Statistics -->
+        <div class="section">
+            <h2>📈 Summary Statistics</h2>
+            <div class="controls">
+                <button onclick="loadFeedback()">🔄 Refresh Data</button>
+                <button onclick="exportToCSV()" class="export-btn">📥 Export to CSV</button>
+            </div>
+            <div id="summary-stats" class="stats"></div>
+        </div>
+
+        <!-- All Feedback -->
+        <div class="section">
+            <h2>💬 All Feedback</h2>
+            <div id="feedback-container">
+                <div class="loading">Loading feedback...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="firebase-config.js"></script>
+    
+    <script>
+        let db = null;
+        let feedbackData = [];
+
+        // Initialize Firebase
+        function initializeFirebase() {
+            if (typeof firebase === 'undefined' || typeof firebaseConfig === 'undefined') {
+                alert('Firebase not configured. Please check firebase-config.js');
+                return false;
+            }
+
+            try {
+                // Check if Firebase is already initialized
+                if (firebase.apps.length === 0) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                db = firebase.firestore();
+                return true;
+            } catch (error) {
+                console.error('Error initializing Firebase:', error);
+                // If error is about app already existing, just get the firestore instance
+                if (error.code === 'app/duplicate-app') {
+                    db = firebase.firestore();
+                    return true;
+                }
+                alert('Error initializing Firebase. Check console for details.');
+                return false;
+            }
+        }
+
+        // Format timestamp
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return 'N/A';
+            if (timestamp.toDate) {
+                return timestamp.toDate().toLocaleString();
+            }
+            return new Date(timestamp).toLocaleString();
+        }
+
+        // Format time (seconds to MM:SS)
+        function formatTime(seconds) {
+            if (!seconds) return '00:00';
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Load feedback data
+        async function loadFeedback() {
+            if (!db) {
+                if (!initializeFirebase()) return;
+            }
+
+            const container = document.getElementById('feedback-container');
+            container.innerHTML = '<div class="loading">Loading...</div>';
+
+            try {
+                // Try with orderBy first, but fallback to loading all and sorting client-side
+                let snapshot;
+                try {
+                    snapshot = await db.collection('feedback')
+                        .orderBy('submittedAt', 'desc')
+                        .get();
+                } catch (orderByError) {
+                    // If orderBy fails (index not created), load all and sort client-side
+                    console.warn('OrderBy index not found, loading all and sorting client-side:', orderByError);
+                    snapshot = await db.collection('feedback').get();
+                }
+
+                feedbackData = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+
+                // Sort by submittedAt if not already sorted (client-side sort)
+                if (feedbackData.length > 0 && feedbackData[0].submittedAt) {
+                    feedbackData.sort((a, b) => {
+                        const timeA = a.submittedAt?.toDate ? a.submittedAt.toDate().getTime() : 
+                                     (a.submittedAt ? new Date(a.submittedAt).getTime() : 0);
+                        const timeB = b.submittedAt?.toDate ? b.submittedAt.toDate().getTime() : 
+                                     (b.submittedAt ? new Date(b.submittedAt).getTime() : 0);
+                        return timeB - timeA; // Descending order
+                    });
+                }
+
+                // Update stats
+                updateSummaryStats(feedbackData);
+
+                // Display table
+                displayFeedback(feedbackData);
+            } catch (error) {
+                console.error('Error loading feedback:', error);
+                let errorMessage = error.message;
+                
+                // Check if it's an index error
+                if (error.message && error.message.includes('index')) {
+                    errorMessage = `The query requires an index. You can create it here: <a href="https://console.firebase.google.com/v1/r/project/${firebaseConfig.projectId}/firestore/indexes" target="_blank">Create Index</a>`;
+                }
+                
+                container.innerHTML = `<div class="empty-state">Error loading data: ${errorMessage}<br><br>Alternatively, try clicking "Refresh Data" to load without sorting.</div>`;
+            }
+        }
+
+        // Update summary statistics
+        function updateSummaryStats(data) {
+            const statsContainer = document.getElementById('summary-stats');
+            
+            if (data.length === 0) {
+                statsContainer.innerHTML = '<div class="empty-state">No feedback data available</div>';
+                return;
+            }
+
+            const totalFeedback = data.length;
+            const avgRating = data.length > 0 
+                ? (data.reduce((sum, f) => sum + (f.rating || 0), 0) / data.length).toFixed(2)
+                : 0;
+            
+            const ratingDistribution = {
+                5: data.filter(f => f.rating === 5).length,
+                4: data.filter(f => f.rating === 4).length,
+                3: data.filter(f => f.rating === 3).length,
+                2: data.filter(f => f.rating === 2).length,
+                1: data.filter(f => f.rating === 1).length
+            };
+
+            const difficultyStats = {
+                'too-easy': data.filter(f => f.difficulty === 'too-easy').length,
+                'just-right': data.filter(f => f.difficulty === 'just-right').length,
+                'too-difficult': data.filter(f => f.difficulty === 'too-difficult').length
+            };
+
+            const recommendStats = {
+                'definitely-yes': data.filter(f => f.recommend === 'definitely-yes').length,
+                'probably-yes': data.filter(f => f.recommend === 'probably-yes').length,
+                'maybe': data.filter(f => f.recommend === 'maybe').length,
+                'probably-no': data.filter(f => f.recommend === 'probably-no').length,
+                'definitely-no': data.filter(f => f.recommend === 'definitely-no').length
+            };
+
+            const soloCount = data.filter(f => f.playerType === 'solo').length;
+            const groupCount = data.filter(f => f.playerType === 'group').length;
+
+            statsContainer.innerHTML = `
+                <div class="stat-card">
+                    <h3>Total Feedback</h3>
+                    <div class="value">${totalFeedback}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Average Rating</h3>
+                    <div class="value">${avgRating} ⭐</div>
+                </div>
+                <div class="stat-card">
+                    <h3>5 Star Ratings</h3>
+                    <div class="value">${ratingDistribution[5]}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>4 Star Ratings</h3>
+                    <div class="value">${ratingDistribution[4]}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Solo Players</h3>
+                    <div class="value">${soloCount}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Groups</h3>
+                    <div class="value">${groupCount}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Just Right Difficulty</h3>
+                    <div class="value">${difficultyStats['just-right']}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Would Recommend</h3>
+                    <div class="value">${recommendStats['definitely-yes'] + recommendStats['probably-yes']}</div>
+                </div>
+            `;
+        }
+
+        // Display feedback table
+        function displayFeedback(data) {
+            const container = document.getElementById('feedback-container');
+
+            if (data.length === 0) {
+                container.innerHTML = '<div class="empty-state">No feedback submitted yet</div>';
+                return;
+            }
+
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Player/Group Name</th>
+                            <th>Player Type</th>
+                            <th>Rating</th>
+                            <th>Enjoyed Most</th>
+                            <th>Difficulty</th>
+                            <th>Recommend</th>
+                            <th>Improvements</th>
+                            <th>Comments</th>
+                            <th>Email</th>
+                            <th>Game Score</th>
+                            <th>Game Time</th>
+                            <th>Submitted At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            data.forEach((feedback, index) => {
+                const playerType = feedback.playerType || 'solo';
+                const enjoyed = feedback.enjoyed || [];
+                const enjoyedDisplay = enjoyed.length > 0 
+                    ? `<div class="enjoyed-tags">${enjoyed.map(e => `<span class="enjoyed-tag">${formatEnjoyedValue(e)}</span>`).join('')}</div>`
+                    : '<span style="color: #999;">None</span>';
+                
+                const improvements = feedback.improvements || '-';
+                const comments = feedback.comments || '-';
+                const email = feedback.email || '-';
+
+                html += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${feedback.playerName || 'Anonymous'}</td>
+                        <td><span class="badge badge-${playerType}">${playerType.toUpperCase()}</span></td>
+                        <td><span class="badge rating-badge">${feedback.rating || 0} ⭐</span></td>
+                        <td style="font-size: 12px;">${enjoyedDisplay}</td>
+                        <td>${formatDifficulty(feedback.difficulty)}</td>
+                        <td>${formatRecommend(feedback.recommend)}</td>
+                        <td style="max-width: 200px; font-size: 12px;">${improvements.length > 100 ? improvements.substring(0, 100) + '...' : improvements}</td>
+                        <td style="max-width: 200px; font-size: 12px;">${comments.length > 100 ? comments.substring(0, 100) + '...' : comments}</td>
+                        <td style="font-size: 12px;">${email}</td>
+                        <td>${feedback.gameScore || 0} ⭐</td>
+                        <td>${formatTime(feedback.gameTime)}</td>
+                        <td class="timestamp">${formatTimestamp(feedback.submittedAt)}</td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // Format enjoyed value
+        function formatEnjoyedValue(value) {
+            const map = {
+                'storyline': 'Storyline',
+                'finding-clues': 'Finding Clues',
+                'solving-puzzles': 'Solving Puzzles',
+                'titbits': 'Titbits',
+                'final-letter': 'Final Letter',
+                'scoring': 'Scoring',
+                'hints': 'Hints'
+            };
+            return map[value] || value;
+        }
+
+        // Format difficulty
+        function formatDifficulty(difficulty) {
+            const map = {
+                'too-easy': 'Too Easy',
+                'just-right': 'Just Right',
+                'too-difficult': 'Too Difficult'
+            };
+            return map[difficulty] || difficulty || '-';
+        }
+
+        // Format recommend
+        function formatRecommend(recommend) {
+            const map = {
+                'definitely-yes': 'Definitely Yes',
+                'probably-yes': 'Probably Yes',
+                'maybe': 'Maybe',
+                'probably-no': 'Probably No',
+                'definitely-no': 'Definitely No'
+            };
+            return map[recommend] || recommend || '-';
+        }
+
+        // Export to CSV
+        function exportToCSV() {
+            if (feedbackData.length === 0) {
+                alert('No data to export');
+                return;
+            }
+
+            let csv = '#,Player Name,Player Type,Rating,Enjoyed Most,Difficulty,Recommend,Improvements,Comments,Email,Game Score,Game Time,Submitted At\n';
+            
+            feedbackData.forEach((feedback, index) => {
+                const enjoyed = (feedback.enjoyed || []).map(e => formatEnjoyedValue(e)).join('; ');
+                const improvements = (feedback.improvements || '').replace(/"/g, '""');
+                const comments = (feedback.comments || '').replace(/"/g, '""');
+                const playerType = feedback.playerType || 'solo';
+                
+                csv += `${index + 1},"${feedback.playerName || 'Anonymous'}","${playerType}","${feedback.rating || 0}","${enjoyed}","${formatDifficulty(feedback.difficulty)}","${formatRecommend(feedback.recommend)}","${improvements}","${comments}","${feedback.email || ''}","${feedback.gameScore || 0}","${formatTime(feedback.gameTime)}","${formatTimestamp(feedback.submittedAt)}"\n`;
+            });
+
+            // Download CSV
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'feedback-data.csv';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            console.log('Page loaded, initializing Firebase...');
+            if (initializeFirebase()) {
+                console.log('Firebase initialized, loading feedback...');
+                loadFeedback();
+            } else {
+                console.error('Failed to initialize Firebase');
+                document.getElementById('feedback-container').innerHTML = 
+                    '<div class="empty-state">Failed to initialize Firebase. Please check the console and firebase-config.js</div>';
+            }
+        });
+    </script>
+</body>
+</html>

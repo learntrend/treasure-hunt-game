@@ -48,7 +48,7 @@
                         <li><strong>Confirm Location:</strong> Once correct, you'll see a confirmation.</li>
                         <li><strong>Answer the Question:</strong> Answer based on physical things at the location.</li>
                         <li><strong>Get Next Clue:</strong> After answering correctly, receive the next clue.</li>
-                        <li><strong>Complete All 10 Locations:</strong> Continue until you find your personal message!</li>
+                        <li><strong>Complete All 10 Locations:</strong> Continue until you find the hidden message from 1800!</li>
                     </ol>
                 </div>
 
@@ -56,6 +56,7 @@
                     <div class="tutorial-icon">🎮</div>
                     <h3>Tips for Success</h3>
                     <ul class="tutorial-list">
+                        <li>You get <strong>100 points as bonus</strong> for playing the game!</li>
                         <li>Read clues carefully for location hints</li>
                         <li>Look around - answers are based on physical features</li>
                         <li>Earn <strong>+100 points</strong> per correct answer</li>
@@ -100,6 +101,7 @@
                 </div>
             </div>
             <button id="start-game-btn" class="btn-primary btn-sparkle">Begin the Journey</button>
+            <button id="resume-previous-game-btn" class="btn-secondary" style="margin-top: 10px;">🔄 Resume Previous Game</button>
             <button id="view-tutorial-btn" class="btn-secondary" style="margin-top: 10px;">📖 View Tutorial</button>
         </div>
     </div>
@@ -262,18 +264,119 @@
     <div id="feedback-modal" class="modal">
         <div class="modal-content feedback-modal-content">
             <div class="modal-header">
-                <h3>✨ Thank You for Playing!</h3>
+                <h3>✨ Share Your Feedback</h3>
                 <button class="btn-close" id="close-feedback-modal">✕</button>
             </div>
             <div class="modal-body feedback-body">
-                <div class="feedback-icon">🎉</div>
-                <p class="feedback-message">We hope you enjoyed your journey through time and discovering the lost letter from 1800!</p>
-                <p class="feedback-submessage">Your feedback helps us create better experiences. We'd love to hear about your adventure!</p>
-                <div class="feedback-actions">
-                    <a href="https://forms.gle/YOUR_FEEDBACK_FORM_LINK" target="_blank" class="btn-primary feedback-link btn-sparkle">
-                        💬 Share Your Feedback
-                    </a>
-                    <button id="close-feedback-modal-btn" class="btn-secondary">Maybe Later</button>
+                <!-- Feedback Form -->
+                <form id="feedback-form">
+                    <p class="feedback-intro">We'd love to hear about your adventure! Your feedback helps us improve the game.</p>
+                    
+                    <!-- Overall Rating -->
+                    <div class="form-group">
+                        <label for="rating">How would you rate your overall experience? <span class="required">*</span></label>
+                        <div class="rating-buttons">
+                            <button type="button" class="rating-btn" data-rating="5" title="Excellent">5 ⭐</button>
+                            <button type="button" class="rating-btn" data-rating="4" title="Very Good">4 ⭐</button>
+                            <button type="button" class="rating-btn" data-rating="3" title="Good">3 ⭐</button>
+                            <button type="button" class="rating-btn" data-rating="2" title="Fair">2 ⭐</button>
+                            <button type="button" class="rating-btn" data-rating="1" title="Poor">1 ⭐</button>
+                        </div>
+                        <input type="hidden" id="rating" name="rating" required>
+                    </div>
+
+                    <!-- What Enjoyed Most -->
+                    <div class="form-group">
+                        <label>What did you enjoy most? (Select all that apply) <span class="required">*</span></label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="enjoyed" value="storyline">
+                                <span>The storyline and theme</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="enjoyed" value="finding-clues">
+                                <span>Finding clues at physical locations</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="enjoyed" value="solving-puzzles">
+                                <span>Solving puzzles and questions</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="enjoyed" value="titbits">
+                                <span>Learning about historical locations</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="enjoyed" value="final-letter">
+                                <span>The final letter reveal</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="enjoyed" value="scoring">
+                                <span>The scoring system</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="enjoyed" value="hints">
+                                <span>The hint system</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Difficulty Level -->
+                    <div class="form-group">
+                        <label for="difficulty">How would you rate the difficulty level? <span class="required">*</span></label>
+                        <select id="difficulty" name="difficulty" required>
+                            <option value="">Select...</option>
+                            <option value="too-easy">Too Easy</option>
+                            <option value="just-right">Just Right</option>
+                            <option value="too-difficult">Too Difficult</option>
+                        </select>
+                    </div>
+
+                    <!-- Would Recommend -->
+                    <div class="form-group">
+                        <label for="recommend">Would you recommend this game to others? <span class="required">*</span></label>
+                        <select id="recommend" name="recommend" required>
+                            <option value="">Select...</option>
+                            <option value="definitely-yes">Definitely Yes</option>
+                            <option value="probably-yes">Probably Yes</option>
+                            <option value="maybe">Maybe</option>
+                            <option value="probably-no">Probably No</option>
+                            <option value="definitely-no">Definitely No</option>
+                        </select>
+                    </div>
+
+                    <!-- What Could Be Improved -->
+                    <div class="form-group">
+                        <label for="improvements">What could we improve to make the game better?</label>
+                        <textarea id="improvements" name="improvements" rows="3" placeholder="Share your thoughts..."></textarea>
+                    </div>
+
+                    <!-- Additional Comments -->
+                    <div class="form-group">
+                        <label for="comments">Any other comments or suggestions?</label>
+                        <textarea id="comments" name="comments" rows="3" placeholder="We'd love to hear more..."></textarea>
+                    </div>
+
+                    <!-- Contact (Optional) -->
+                    <div class="form-group">
+                        <label for="email">Email (optional - only if you'd like us to follow up)</label>
+                        <input type="email" id="email" name="email" placeholder="your.email@example.com">
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="feedback-form-actions">
+                        <button type="submit" class="btn-primary btn-sparkle" id="submit-feedback-btn">
+                            💬 Submit Feedback
+                        </button>
+                        <button type="button" id="close-feedback-form-btn" class="btn-secondary">Cancel</button>
+                    </div>
+                </form>
+
+                <!-- Success Message (hidden by default) -->
+                <div id="feedback-success" class="feedback-success" style="display: none;">
+                    <div class="feedback-icon">🎉</div>
+                    <h3>Thank You!</h3>
+                    <p>Your feedback has been submitted successfully. We really appreciate you taking the time to share your thoughts!</p>
+                    <button type="button" id="close-feedback-after-submit" class="btn-primary">Close</button>
                 </div>
             </div>
         </div>
@@ -341,5 +444,35 @@
     <script src="game-data.js"></script>
     <script src="game-engine.js"></script>
     <script src="app.js"></script>
+
+    <!-- Resume Previous Game Modal -->
+    <div id="resume-game-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🔄 Resume Previous Game</h3>
+                <button class="btn-close" id="close-resume-modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 20px; color: #666;">Enter your name to search for saved games from today (within the last 2 hours).</p>
+                
+                <div class="form-group">
+                    <label for="resume-player-name">Your Name/ Your Team Name:</label>
+                    <input type="text" id="resume-player-name" placeholder="Enter your name or team name..." style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1rem; margin-top: 5px;">
+                </div>
+                
+                <button id="search-saved-games-btn" class="btn-primary" style="width: 100%; margin-top: 15px;">🔍 Search for Saved Games</button>
+                
+                <div id="saved-games-results" style="margin-top: 20px; display: none;">
+                    <h4 style="margin-bottom: 15px; color: var(--primary-color);">Found Saved Games:</h4>
+                    <div id="saved-games-list"></div>
+                    <p id="no-games-found" style="display: none; color: #666; text-align: center; padding: 20px;">No saved games found for this name from today (within 2 hours).</p>
+                </div>
+                
+                <div id="resume-loading" style="display: none; text-align: center; padding: 20px; color: #667eea;">
+                    Loading game...
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

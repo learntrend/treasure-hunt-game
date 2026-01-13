@@ -51,8 +51,18 @@ function setupEventListeners() {
     });
     
     document.getElementById('start-game-btn').addEventListener('click', startGame);
+    document.getElementById('resume-previous-game-btn').addEventListener('click', showResumeGameModal);
     document.getElementById('view-tutorial-btn').addEventListener('click', showTutorial);
     document.getElementById('start-after-tutorial-btn').addEventListener('click', startAfterTutorial);
+    
+    // Resume game modal
+    document.getElementById('close-resume-modal').addEventListener('click', closeResumeGameModal);
+    document.getElementById('search-saved-games-btn').addEventListener('click', searchSavedGames);
+    document.getElementById('resume-player-name').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            searchSavedGames();
+        }
+    });
     
     // Starting point screen
     document.getElementById('arrived-btn').addEventListener('click', startGameplay);
@@ -84,11 +94,18 @@ function setupEventListeners() {
     
     // Feedback modal
     document.getElementById('close-feedback-modal').addEventListener('click', closeFeedbackModal);
-    document.getElementById('close-feedback-modal-btn').addEventListener('click', closeFeedbackModal);
     
     // Final screen
     document.getElementById('give-feedback-btn').addEventListener('click', showFeedbackModal);
     document.getElementById('share-results-btn').addEventListener('click', shareResults);
+    
+    // Feedback form
+    document.getElementById('feedback-form').addEventListener('submit', handleFeedbackSubmit);
+    document.getElementById('close-feedback-form-btn').addEventListener('click', closeFeedbackModal);
+    document.getElementById('close-feedback-after-submit').addEventListener('click', closeFeedbackModal);
+    
+    // Setup rating buttons
+    setupRatingButtons();
 }
 
 // Update name label based on group size
@@ -164,6 +181,9 @@ async function startGame() {
     // Initialize game engine (personal message will be fetched from database later)
     gameEngine.initialize(playerName, groupSize, groupNames, null);
     
+    // Update score display to show initial 100 points
+    updateScoreDisplay(gameEngine.getScore());
+    
     // Show starting point screen
     showScreen('starting-point-screen');
     
@@ -222,8 +242,21 @@ function loadCurrentLocation() {
     document.getElementById('question-section').style.display = 'none';
     document.getElementById('action-buttons-container').style.display = 'none';
     
-    // Reset hint buttons
+    // Reset hint buttons and re-enable map hint for new location
     resetHintButtons();
+    
+    // Re-enable and show map hint button for new clue
+    const mapHintBtn = document.getElementById('map-hint-btn');
+    if (mapHintBtn) {
+        mapHintBtn.disabled = false;
+        mapHintBtn.style.display = 'block';
+    }
+    
+    // Show the hint-buttons container in clue section
+    const clueHintButtons = document.querySelector('#clue-section .hint-buttons');
+    if (clueHintButtons) {
+        clueHintButtons.style.display = 'flex';
+    }
     
     // Update locations panel
     updateLocationsPanel();
@@ -251,6 +284,19 @@ function handleSubmitLocationName() {
         locationNameInput.classList.remove('error');
         locationNameInput.classList.add('success');
         if (errorContainer) errorContainer.remove();
+        
+        // Hide and disable map hint button since location is now confirmed
+        const mapHintBtn = document.getElementById('map-hint-btn');
+        if (mapHintBtn) {
+            mapHintBtn.disabled = true;
+            mapHintBtn.style.display = 'none';
+        }
+        
+        // Also hide the hint-buttons container in clue section
+        const clueHintButtons = document.querySelector('#clue-section .hint-buttons');
+        if (clueHintButtons) {
+            clueHintButtons.style.display = 'none';
+        }
         
         // Hide location name input
         document.getElementById('location-name-input-container').style.display = 'none';
@@ -492,7 +538,11 @@ async function showFinalScreen() {
             groupMembers: gameEngine.groupMembers,
             score: stats.score,
             time: gameEngine.elapsedTime, // in seconds
-            completedLocations: gameEngine.completedLocations
+            completedLocations: gameEngine.completedLocations,
+            hintsUsed: {
+                textHints: Array.from(gameEngine.hintsUsed.textHints),
+                mapHints: Array.from(gameEngine.hintsUsed.mapHints)
+            }
         };
         await window.DatabaseService.saveCompletedGame(completedGameData);
     }
@@ -539,12 +589,161 @@ function startTypewriterEffect(message) {
 
 // Show feedback modal
 function showFeedbackModal() {
+    // Reset form
+    document.getElementById('feedback-form').reset();
+    document.getElementById('rating').value = '';
+    document.querySelectorAll('.rating-btn').forEach(btn => btn.classList.remove('selected'));
+    document.getElementById('feedback-form').style.display = 'block';
+    document.getElementById('feedback-success').style.display = 'none';
+    
     document.getElementById('feedback-modal').classList.add('active');
 }
 
 // Close feedback modal
 function closeFeedbackModal() {
     document.getElementById('feedback-modal').classList.remove('active');
+    // Reset form when closing
+    document.getElementById('feedback-form').reset();
+    document.getElementById('rating').value = '';
+    document.querySelectorAll('.rating-btn').forEach(btn => btn.classList.remove('selected'));
+    document.getElementById('feedback-form').style.display = 'block';
+    document.getElementById('feedback-success').style.display = 'none';
+}
+
+// Handle feedback form submission
+async function handleFeedbackSubmit(e) {
+    e.preventDefault();
+    
+    const form = e.target;
+    const submitBtn = document.getElementById('submit-feedback-btn');
+    const originalText = submitBtn.textContent;
+    
+    // Get form data
+    const rating = document.getElementById('rating').value;
+    const enjoyed = Array.from(document.querySelectorAll('input[name="enjoyed"]:checked')).map(cb => cb.value);
+    const difficulty = document.getElementById('difficulty').value;
+    const recommend = document.getElementById('recommend').value;
+    const improvements = document.getElementById('improvements').value.trim();
+    const comments = document.getElementById('comments').value.trim();
+    const email = document.getElementById('email').value.trim();
+    
+    // Validation
+    let isValid = true;
+    
+    // Clear previous errors
+    document.querySelectorAll('.form-group').forEach(group => group.classList.remove('error'));
+    
+    if (!rating) {
+        showFormError('rating', 'Please select a rating');
+        isValid = false;
+    }
+    
+    if (enjoyed.length === 0) {
+        showFormError(document.querySelector('.checkbox-group').closest('.form-group'), 'Please select at least one option');
+        isValid = false;
+    }
+    
+    if (!difficulty) {
+        showFormError('difficulty', 'Please select difficulty level');
+        isValid = false;
+    }
+    
+    if (!recommend) {
+        showFormError('recommend', 'Please select recommendation');
+        isValid = false;
+    }
+    
+    if (!isValid) {
+        return;
+    }
+    
+    // Disable submit button
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting...';
+    
+    try {
+        // Get current game stats
+        const stats = gameEngine.getFinalStats();
+        
+        // Prepare feedback data
+        const feedbackData = {
+            rating: parseInt(rating),
+            enjoyed: enjoyed,
+            difficulty: difficulty,
+            recommend: recommend,
+            improvements: improvements || null,
+            comments: comments || null,
+            email: email || null,
+            playerName: gameEngine.playerName || 'Anonymous',
+            playerType: currentPlayerType || 'solo',
+            groupMembers: gameEngine.groupMembers || [],
+            gameScore: stats.score || 0,
+            gameTime: gameEngine.elapsedTime || 0,
+            completedAt: new Date().toISOString()
+        };
+        
+        // Save to database
+        if (window.DatabaseService) {
+            const saved = await window.DatabaseService.saveFeedback(feedbackData);
+            if (saved) {
+                // Show success message
+                document.getElementById('feedback-form').style.display = 'none';
+                document.getElementById('feedback-success').style.display = 'block';
+            } else {
+                throw new Error('Failed to save feedback');
+            }
+        } else {
+            // Fallback: show success even if database not available
+            document.getElementById('feedback-form').style.display = 'none';
+            document.getElementById('feedback-success').style.display = 'block';
+        }
+    } catch (error) {
+        console.error('Error submitting feedback:', error);
+        alert('There was an error submitting your feedback. Please try again.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+    }
+}
+
+// Show form error
+function showFormError(fieldIdOrElement, message) {
+    let formGroup;
+    if (typeof fieldIdOrElement === 'string') {
+        const field = document.getElementById(fieldIdOrElement);
+        formGroup = field ? field.closest('.form-group') : null;
+    } else {
+        formGroup = fieldIdOrElement;
+    }
+    
+    if (formGroup) {
+        formGroup.classList.add('error');
+        let errorElement = formGroup.querySelector('.form-error');
+        if (!errorElement) {
+            errorElement = document.createElement('div');
+            errorElement.className = 'form-error';
+            formGroup.appendChild(errorElement);
+        }
+        errorElement.textContent = message;
+    }
+}
+
+// Setup rating buttons
+function setupRatingButtons() {
+    document.querySelectorAll('.rating-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Remove selected class from all buttons
+            document.querySelectorAll('.rating-btn').forEach(b => b.classList.remove('selected'));
+            // Add selected class to clicked button
+            this.classList.add('selected');
+            // Set hidden input value
+            document.getElementById('rating').value = this.dataset.rating;
+            // Clear error if any
+            const formGroup = this.closest('.form-group');
+            if (formGroup) {
+                formGroup.classList.remove('error');
+            }
+        });
+    });
 }
 
 // Share results
@@ -739,20 +938,55 @@ function resumeGame(savedState) {
     updateTimerDisplay(gameEngine.elapsedTime);
     updateLocationsPanel();
     
-    // Restore timer if it was running
-    if (savedState.isTimerRunning && !savedState.isTimerPaused) {
-        // Calculate remaining time
+    // Restore and resume timer - don't add disconnected time, just resume from saved elapsed time
+    if (savedState.currentLocationIndex > 0) {
         const now = Date.now();
-        const elapsedSinceSave = Math.floor((now - (savedState.startTime || now)) / 1000);
-        gameEngine.elapsedTime = savedState.elapsedTime + elapsedSinceSave;
-        gameEngine.startTime = now - (gameEngine.elapsedTime * 1000) - savedState.totalPauseTime;
-        gameEngine.startTimer();
-    } else if (savedState.isTimerPaused) {
-        // Timer was paused, restore pause state
-        gameEngine.isTimerRunning = true;
-        gameEngine.isTimerPaused = true;
-        gameEngine.startTime = savedState.startTime;
-        gameEngine.totalPauseTime = savedState.totalPauseTime;
+        const savedElapsedTime = savedState.elapsedTime || 0;
+        const savedTotalPauseTime = savedState.totalPauseTime || 0;
+        
+        // Restore timer state - don't add any time that passed while disconnected
+        // Just resume from the saved elapsed time
+        gameEngine.elapsedTime = savedElapsedTime;
+        gameEngine.totalPauseTime = savedTotalPauseTime;
+        
+        // Calculate start time so timer continues from saved elapsed time
+        // Formula in game engine: elapsed = (now - startTime - totalPauseTime) / 1000
+        // We want: elapsed = savedElapsedTime (at resume time)
+        // So: startTime = now - (savedElapsedTime * 1000) - (savedTotalPauseTime * 1000)
+        gameEngine.startTime = now - (savedElapsedTime * 1000) - (savedTotalPauseTime * 1000);
+        
+        if (savedState.isTimerPaused) {
+            // Timer was paused (e.g., viewing titbits) - restore pause state
+            gameEngine.isTimerRunning = true;
+            gameEngine.isTimerPaused = true;
+            gameEngine.pauseStartTime = savedState.pauseStartTime || now;
+            console.log('Timer restored - was paused, elapsed time:', gameEngine.elapsedTime);
+        } else {
+            // Timer should be running - resume it from saved elapsed time
+            gameEngine.isTimerRunning = true;
+            gameEngine.isTimerPaused = false;
+            gameEngine.pauseStartTime = null;
+            
+            // Stop any existing timer interval
+            if (gameEngine.timerInterval) {
+                clearInterval(gameEngine.timerInterval);
+                gameEngine.timerInterval = null;
+            }
+            
+            // Start the timer - this will continue counting from saved elapsed time
+            gameEngine.updateTimer();
+            console.log('Timer resumed from:', gameEngine.elapsedTime, 'seconds');
+        }
+        
+        // Update timer display immediately with saved elapsed time
+        updateTimerDisplay(gameEngine.elapsedTime);
+    } else {
+        // At starting point - timer hasn't started yet
+        gameEngine.elapsedTime = 0;
+        gameEngine.isTimerRunning = false;
+        gameEngine.isTimerPaused = false;
+        updateTimerDisplay(0);
+        console.log('Timer not started - at starting point');
     }
     
     // Show appropriate screen based on current location
@@ -764,4 +998,232 @@ function resumeGame(savedState) {
         showScreen('game-screen');
         loadCurrentLocation();
     }
+}
+
+// Show resume game modal
+function showResumeGameModal() {
+    document.getElementById('resume-game-modal').classList.add('active');
+    document.getElementById('resume-player-name').value = '';
+    document.getElementById('saved-games-results').style.display = 'none';
+    document.getElementById('saved-games-list').innerHTML = '';
+    document.getElementById('no-games-found').style.display = 'none';
+    document.getElementById('resume-loading').style.display = 'none';
+}
+
+// Close resume game modal
+function closeResumeGameModal() {
+    document.getElementById('resume-game-modal').classList.remove('active');
+}
+
+// Search for saved games by player name
+async function searchSavedGames() {
+    const playerName = document.getElementById('resume-player-name').value.trim();
+    
+    if (!playerName) {
+        alert('Please enter your name to search for saved games.');
+        return;
+    }
+    
+    if (!window.DatabaseService || !window.DatabaseService.isInitialized()) {
+        alert('Database not available. Please check your connection.');
+        return;
+    }
+    
+    const resultsDiv = document.getElementById('saved-games-results');
+    const gamesList = document.getElementById('saved-games-list');
+    const noGamesFound = document.getElementById('no-games-found');
+    const loadingDiv = document.getElementById('resume-loading');
+    
+    // Show loading
+    resultsDiv.style.display = 'block';
+    gamesList.innerHTML = '';
+    noGamesFound.style.display = 'none';
+    loadingDiv.style.display = 'block';
+    
+    try {
+        const games = await window.DatabaseService.searchSavedGamesByPlayerName(playerName);
+        
+        loadingDiv.style.display = 'none';
+        
+        if (games.length === 0) {
+            noGamesFound.style.display = 'block';
+            gamesList.innerHTML = '';
+        } else {
+            noGamesFound.style.display = 'none';
+            
+            let html = '';
+            games.forEach((game, index) => {
+                const lastUpdated = game.lastUpdated.toLocaleString();
+                const locationText = game.currentLocationIndex === 0 
+                    ? 'Starting Point' 
+                    : `Location ${game.currentLocationIndex}`;
+                const timeText = formatTimeForResume(game.elapsedTime);
+                
+                html += `
+                    <div style="background: rgba(102, 126, 234, 0.1); border-radius: 8px; padding: 15px; margin-bottom: 10px; border-left: 4px solid var(--accent-color);">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                            <div>
+                                <strong style="color: var(--primary-color);">Game ${index + 1}</strong>
+                                <div style="font-size: 0.9rem; color: #666; margin-top: 5px;">
+                                    ${locationText} • Score: ${game.score} ⭐ • Time: ${timeText}
+                                </div>
+                                <div style="font-size: 0.85rem; color: #999; margin-top: 5px;">
+                                    Last saved: ${lastUpdated}
+                                </div>
+                            </div>
+                            <button class="btn-primary" onclick="resumeSelectedGame('${game.id}', '${game.sessionId}')" style="padding: 8px 15px; font-size: 0.9rem;">
+                                Resume
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            gamesList.innerHTML = html;
+        }
+    } catch (error) {
+        console.error('Error searching saved games:', error);
+        loadingDiv.style.display = 'none';
+        
+        // Show more detailed error message
+        let errorMessage = 'Error searching for saved games. ';
+        if (error.message) {
+            errorMessage += error.message;
+        } else {
+            errorMessage += 'Please check the console for details.';
+        }
+        
+        // Check if it's an index error
+        if (error.message && error.message.includes('index')) {
+            errorMessage += '\n\nYou may need to create a Firestore index. Check the console for the link.';
+        }
+        
+        alert(errorMessage);
+    }
+}
+
+// Resume selected game - directly loads from database
+async function resumeSelectedGame(gameId, sessionId) {
+    if (!window.DatabaseService) {
+        alert('Database not available.');
+        return;
+    }
+    
+    const loadingDiv = document.getElementById('resume-loading');
+    loadingDiv.style.display = 'block';
+    
+    try {
+        console.log('Resuming game with document ID:', gameId, 'sessionId:', sessionId);
+        const savedState = await window.DatabaseService.loadGameStateBySessionId(gameId);
+        
+        if (!savedState) {
+            loadingDiv.style.display = 'none';
+            console.error('Failed to load game state. Document ID:', gameId);
+            alert('Could not load the selected game. It may have been deleted or the session expired.');
+            return;
+        }
+        
+        console.log('Game state loaded successfully:', savedState);
+        console.log('Current location index:', savedState.currentLocationIndex);
+        console.log('Player name:', savedState.playerName);
+        console.log('Score:', savedState.score);
+        
+        // Close modal first
+        closeResumeGameModal();
+        
+        // Directly restore game engine state
+        try {
+            gameEngine.restoreState(savedState);
+            currentPlayerType = savedState.playerType || 'solo';
+            
+            console.log('Game engine restored successfully');
+            
+            // Update UI
+            updateScoreDisplay(gameEngine.getScore());
+            updateTimerDisplay(gameEngine.elapsedTime);
+            updateLocationsPanel();
+            
+            // Restore and resume timer
+            // If game is in progress (past starting point), always resume timer
+            if (savedState.currentLocationIndex > 0) {
+                const now = Date.now();
+                const savedElapsedTime = savedState.elapsedTime || 0;
+                const savedTotalPauseTime = savedState.totalPauseTime || 0;
+                
+                // Restore timer state - don't add any time that passed while disconnected
+                // Just resume from the saved elapsed time
+                gameEngine.elapsedTime = savedElapsedTime;
+                gameEngine.totalPauseTime = savedTotalPauseTime;
+                
+                // Calculate start time so timer continues from saved elapsed time
+                // Formula in game engine: elapsed = (now - startTime - totalPauseTime) / 1000
+                // We want: elapsed = savedElapsedTime (at resume time)
+                // So: startTime = now - (savedElapsedTime * 1000) - (savedTotalPauseTime * 1000)
+                gameEngine.startTime = now - (savedElapsedTime * 1000) - (savedTotalPauseTime * 1000);
+                
+                if (savedState.isTimerPaused) {
+                    // Timer was paused (e.g., viewing titbits) - restore pause state
+                    gameEngine.isTimerRunning = true;
+                    gameEngine.isTimerPaused = true;
+                    gameEngine.pauseStartTime = savedState.pauseStartTime || now;
+                    console.log('Timer restored - was paused, elapsed time:', gameEngine.elapsedTime);
+                } else {
+                    // Timer should be running - resume it from saved elapsed time
+                    gameEngine.isTimerRunning = true;
+                    gameEngine.isTimerPaused = false;
+                    gameEngine.pauseStartTime = null;
+                    
+                    // Stop any existing timer interval
+                    if (gameEngine.timerInterval) {
+                        clearInterval(gameEngine.timerInterval);
+                        gameEngine.timerInterval = null;
+                    }
+                    
+                    // Start the timer - this will continue counting from saved elapsed time
+                    gameEngine.updateTimer();
+                    console.log('Timer resumed from:', gameEngine.elapsedTime, 'seconds');
+                }
+                
+                // Update timer display immediately with saved elapsed time
+                updateTimerDisplay(gameEngine.elapsedTime);
+            } else {
+                // At starting point - timer hasn't started yet
+                gameEngine.elapsedTime = 0;
+                gameEngine.isTimerRunning = false;
+                gameEngine.isTimerPaused = false;
+                updateTimerDisplay(0);
+                console.log('Timer not started - at starting point');
+            }
+            
+            // Show appropriate screen based on current location
+            if (savedState.currentLocationIndex === 0) {
+                showScreen('starting-point-screen');
+                document.getElementById('starting-location-name').textContent = gameData.startingLocation.name;
+                document.getElementById('starting-location-address').textContent = gameData.startingLocation.address;
+            } else {
+                showScreen('game-screen');
+                loadCurrentLocation();
+            }
+            
+            // Start auto-save if not already running
+            startAutoSave();
+            
+        } catch (restoreError) {
+            console.error('Error restoring game state:', restoreError);
+            alert('Error restoring game: ' + (restoreError.message || 'Please try again.'));
+        }
+        
+    } catch (error) {
+        console.error('Error resuming game:', error);
+        loadingDiv.style.display = 'none';
+        alert('Error loading game: ' + (error.message || 'Please try again.'));
+    }
+}
+
+// Format time helper for resume modal
+function formatTimeForResume(seconds) {
+    if (!seconds) return '00:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
