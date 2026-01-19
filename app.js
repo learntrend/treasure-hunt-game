@@ -35,14 +35,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Set current year in final screen
     document.getElementById('current-year').textContent = new Date().getFullYear();
     
+    // Set up event listeners first (before any DOM modifications)
+    setupEventListeners();
+    
     // Check for booking-based access
     await checkBookingAccess();
     
     // Check for saved game state and resume if available
     await checkForSavedGame();
-    
-    // Set up event listeners
-    setupEventListeners();
     
     // Auto-save game state every 30 seconds (only when game is running)
     startAutoSave();
