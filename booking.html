@@ -507,8 +507,10 @@
                 availableHours.push(hour.toString().padStart(2, '0'));
             }
             
-            // If no database, show all hours
+            // Always show hours initially, even if database not ready
+            // Database check will filter out taken slots if available
             if (!db || !isInitialized) {
+                console.log('Database not ready, showing all hours');
                 if (hourSelect) {
                     hourSelect.innerHTML = '<option value="">Hour</option>';
                     availableHours.forEach(hour => {
@@ -517,6 +519,14 @@
                         option.textContent = hour;
                         hourSelect.appendChild(option);
                     });
+                    hourSelect.disabled = false;
+                }
+                // Try to reload with database filtering once db is ready
+                if (!db && firebase && firebase.firestore) {
+                    db = firebase.firestore();
+                    isInitialized = true;
+                    // Reload with database check
+                    setTimeout(() => loadAvailableTimeSlots(selectedDate), 100);
                 }
                 return;
             }
@@ -695,24 +705,45 @@
                 window.DatabaseService.initializeFirebase();
             }
             
-            // Ensure db is set and load time slots
-            const ensureDbAndLoadSlots = () => {
+            // Load hours immediately - don't wait for database
+            // Hours will show all slots, then filter once database is ready
+            if (dateInput.value) {
+                loadAvailableTimeSlots(dateInput.value);
+            } else {
+                // Even without date, ensure hour dropdown is populated
+                const hourSelect = document.getElementById('time-hour');
+                if (hourSelect && hourSelect.options.length <= 1) {
+                    const availableHours = [];
+                    for (let hour = 9; hour <= 19; hour++) {
+                        availableHours.push(hour.toString().padStart(2, '0'));
+                    }
+                    hourSelect.innerHTML = '<option value="">Hour</option>';
+                    availableHours.forEach(hour => {
+                        const option = document.createElement('option');
+                        option.value = hour;
+                        option.textContent = hour;
+                        hourSelect.appendChild(option);
+                    });
+                }
+            }
+            
+            // Ensure db is set for future database operations
+            const ensureDb = () => {
                 if (!db && firebase && firebase.firestore) {
                     db = firebase.firestore();
                     isInitialized = true;
-                }
-                
-                // Load time slots if date is selected and db is ready
-                if (db && isInitialized && dateInput.value) {
-                    loadAvailableTimeSlots(dateInput.value);
+                    // Reload time slots with database filtering if date is selected
+                    if (dateInput.value) {
+                        loadAvailableTimeSlots(dateInput.value);
+                    }
                 } else if (!db || !isInitialized) {
                     // Retry if db not ready yet
-                    setTimeout(ensureDbAndLoadSlots, 100);
+                    setTimeout(ensureDb, 100);
                 }
             };
             
             // Start checking after scripts load
-            setTimeout(ensureDbAndLoadSlots, 300);
+            setTimeout(ensureDb, 300);
 
             // Load available hours when date changes
             dateInput.addEventListener('change', function() {
@@ -773,10 +804,25 @@
         document.getElementById('booking-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            // Clear previous errors
+            // Clear previous errors and red highlighting
             document.querySelectorAll('.form-group').forEach(group => {
                 group.classList.remove('error');
             });
+            
+            // Reset all field styles
+            document.querySelectorAll('input, select, textarea').forEach(field => {
+                field.style.borderColor = '';
+                field.style.borderWidth = '';
+                field.style.backgroundColor = '';
+            });
+            
+            // Reset payment option styles
+            document.querySelectorAll('.payment-option').forEach(opt => {
+                opt.style.borderColor = '';
+                opt.style.borderWidth = '';
+                opt.style.backgroundColor = '';
+            });
+            
             showFormErrors([]);
             
             // Get form data
