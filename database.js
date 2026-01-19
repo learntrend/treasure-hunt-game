@@ -294,14 +294,22 @@ async function loadGameState() {
 
     try {
         const sessionId = getSessionId();
-        if (!sessionId) return null;
+        if (!sessionId) {
+            console.log('No session ID found for loadGameState');
+            return null;
+        }
 
         const sessionRef = db.collection('gameSessions').doc(sessionId);
         const docSnap = await sessionRef.get();
 
-        if (docSnap.exists()) {
+        // Check if document exists (handle both Firestore v8 and v9+ syntax)
+        const exists = docSnap.exists ? docSnap.exists() : (docSnap.exists !== false && docSnap.data() !== undefined);
+        
+        if (exists) {
             const data = docSnap.data();
-            return dbToGameState(data);
+            if (data) {
+                return dbToGameState(data);
+            }
         }
         return null;
     } catch (error) {

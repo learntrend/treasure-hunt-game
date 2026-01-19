@@ -103,6 +103,11 @@ async function checkBookingAccess() {
         // Access granted - load game session
         const gameSession = accessCheck.gameSession;
         if (gameSession) {
+            // IMPORTANT: Set session ID so loadGameState can find it
+            if (window.DatabaseService && typeof window.DatabaseService.setSessionId === 'function') {
+                window.DatabaseService.setSessionId(gameSession.id || gameSession.sessionId);
+            }
+            
             // Set booking info in game engine
             gameEngine.bookingId = bookingId;
             gameEngine.bookingDate = gameSession.bookingDate;
