@@ -130,58 +130,101 @@ async function checkBookingAccess() {
 
 // Set up all event listeners
 function setupEventListeners() {
-    // Welcome screen
-    document.getElementById('group-size').addEventListener('change', (e) => {
-        updateNameLabel(e.target.value);
-        const groupContainer = document.getElementById('group-names-container');
-        groupContainer.style.display = e.target.value === 'group' ? 'block' : 'none';
-    });
+    // Welcome screen - check if elements exist before adding listeners
+    const groupSizeEl = document.getElementById('group-size');
+    if (groupSizeEl) {
+        groupSizeEl.addEventListener('change', (e) => {
+            updateNameLabel(e.target.value);
+            const groupContainer = document.getElementById('group-names-container');
+            if (groupContainer) {
+                groupContainer.style.display = e.target.value === 'group' ? 'block' : 'none';
+            }
+        });
+    }
     
-    document.getElementById('start-game-btn').addEventListener('click', startGame);
-    document.getElementById('resume-previous-game-btn').addEventListener('click', showResumeGameModal);
-    document.getElementById('view-tutorial-btn').addEventListener('click', showTutorial);
-    document.getElementById('start-after-tutorial-btn').addEventListener('click', startAfterTutorial);
+    const startGameBtn = document.getElementById('start-game-btn');
+    if (startGameBtn) startGameBtn.addEventListener('click', startGame);
+    
+    const resumeBtn = document.getElementById('resume-previous-game-btn');
+    if (resumeBtn) resumeBtn.addEventListener('click', showResumeGameModal);
+    
+    const viewTutorialBtn = document.getElementById('view-tutorial-btn');
+    if (viewTutorialBtn) viewTutorialBtn.addEventListener('click', showTutorial);
+    
+    const startAfterTutorialBtn = document.getElementById('start-after-tutorial-btn');
+    if (startAfterTutorialBtn) startAfterTutorialBtn.addEventListener('click', startAfterTutorial);
     
     // Resume game modal
-    document.getElementById('close-resume-modal').addEventListener('click', closeResumeGameModal);
-    document.getElementById('search-saved-games-btn').addEventListener('click', searchSavedGames);
-    document.getElementById('resume-player-name').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            searchSavedGames();
-        }
-    });
+    const closeResumeModal = document.getElementById('close-resume-modal');
+    if (closeResumeModal) closeResumeModal.addEventListener('click', closeResumeGameModal);
+    
+    const searchSavedGamesBtn = document.getElementById('search-saved-games-btn');
+    if (searchSavedGamesBtn) searchSavedGamesBtn.addEventListener('click', searchSavedGames);
+    
+    const resumePlayerName = document.getElementById('resume-player-name');
+    if (resumePlayerName) {
+        resumePlayerName.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchSavedGames();
+            }
+        });
+    }
     
     // Starting point screen
-    document.getElementById('arrived-btn').addEventListener('click', startGameplay);
+    const arrivedBtn = document.getElementById('arrived-btn');
+    if (arrivedBtn) arrivedBtn.addEventListener('click', startGameplay);
     
     // Game screen
-    document.getElementById('submit-location-name-btn').addEventListener('click', handleSubmitLocationName);
-    document.getElementById('location-name-input').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            handleSubmitLocationName();
-        }
-    });
-    document.getElementById('view-titbits-btn').addEventListener('click', showTitbits);
-    document.getElementById('text-hint-btn').addEventListener('click', showTextHint);
-    document.getElementById('map-hint-btn').addEventListener('click', showMapHint);
-    document.getElementById('submit-answer-btn').addEventListener('click', submitAnswer);
-    document.getElementById('answer-input').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            submitAnswer();
-        }
-    });
-    document.getElementById('toggle-locations-panel-btn').addEventListener('click', toggleLocationsPanel);
+    const submitLocationNameBtn = document.getElementById('submit-location-name-btn');
+    if (submitLocationNameBtn) submitLocationNameBtn.addEventListener('click', handleSubmitLocationName);
+    
+    const locationNameInput = document.getElementById('location-name-input');
+    if (locationNameInput) {
+        locationNameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleSubmitLocationName();
+            }
+        });
+    }
+    
+    const viewTitbitsBtn = document.getElementById('view-titbits-btn');
+    if (viewTitbitsBtn) viewTitbitsBtn.addEventListener('click', showTitbits);
+    
+    const textHintBtn = document.getElementById('text-hint-btn');
+    if (textHintBtn) textHintBtn.addEventListener('click', showTextHint);
+    
+    const mapHintBtn = document.getElementById('map-hint-btn');
+    if (mapHintBtn) mapHintBtn.addEventListener('click', showMapHint);
+    
+    const submitAnswerBtn = document.getElementById('submit-answer-btn');
+    if (submitAnswerBtn) submitAnswerBtn.addEventListener('click', submitAnswer);
+    
+    const answerInput = document.getElementById('answer-input');
+    if (answerInput) {
+        answerInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                submitAnswer();
+            }
+        });
+    }
+    
+    const toggleLocationsPanelBtn = document.getElementById('toggle-locations-panel-btn');
+    if (toggleLocationsPanelBtn) toggleLocationsPanelBtn.addEventListener('click', toggleLocationsPanel);
+    
     // Music toggle - COMMENTED OUT FOR NOW
     // document.getElementById('music-toggle-btn').addEventListener('click', toggleMusic);
     
     // Titbits screen
-    document.getElementById('close-titbits-btn').addEventListener('click', closeTitbits);
+    const closeTitbitsBtn = document.getElementById('close-titbits-btn');
+    if (closeTitbitsBtn) closeTitbitsBtn.addEventListener('click', closeTitbits);
     
     // Hint modal
-    document.getElementById('close-hint-modal').addEventListener('click', closeHintModal);
+    const closeHintModal = document.getElementById('close-hint-modal');
+    if (closeHintModal) closeHintModal.addEventListener('click', closeHintModal);
     
     // Feedback modal
-    document.getElementById('close-feedback-modal').addEventListener('click', closeFeedbackModal);
+    const closeFeedbackModal = document.getElementById('close-feedback-modal');
+    if (closeFeedbackModal) closeFeedbackModal.addEventListener('click', closeFeedbackModal);
     
     // Final screen
     document.getElementById('give-feedback-btn').addEventListener('click', showFeedbackModal);
