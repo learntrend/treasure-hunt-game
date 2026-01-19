@@ -440,13 +440,9 @@
     <script src="database.js"></script>
     
     <script>
-        // Use db from database.js if available, otherwise declare local
-        let db = null;
+        // Use localDb to avoid conflict with database.js which also declares 'db'
+        let localDb = null;
         let isInitialized = false;
-        
-        // Check if db is already declared (from database.js)
-        // If database.js loaded first, we need to use its db reference
-        // We'll get it from firebase.firestore() directly when needed
 
         // Initialize Firebase
         function initializeFirebase() {
