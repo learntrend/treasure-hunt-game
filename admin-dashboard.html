@@ -329,11 +329,32 @@
             }
 
             try {
-                firebase.initializeApp(firebaseConfig);
-                localDb = firebase.firestore();
-                return true;
+                // Check if Firebase app is already initialized (e.g., by database.js)
+                let app;
+                try {
+                    app = firebase.app();
+                    // App already exists, just get firestore
+                    localDb = firebase.firestore();
+                    return true;
+                } catch (e) {
+                    // App doesn't exist, initialize it
+                    app = firebase.initializeApp(firebaseConfig);
+                    localDb = firebase.firestore();
+                    return true;
+                }
             } catch (error) {
                 console.error('Error initializing Firebase:', error);
+                // If it's a duplicate app error, just get firestore
+                if (error.code === 'app/duplicate-app') {
+                    try {
+                        localDb = firebase.firestore();
+                        return true;
+                    } catch (firestoreError) {
+                        console.error('Error getting Firestore:', firestoreError);
+                        alert('Error accessing Firebase. Check console for details.');
+                        return false;
+                    }
+                }
                 alert('Error initializing Firebase. Check console for details.');
                 return false;
             }
