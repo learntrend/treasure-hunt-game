@@ -780,16 +780,60 @@ async function canAccessGame(bookingId = null, sessionId = null) {
         // Check booking time (if booking date/time exists)
         if (gameSession.bookingDate && gameSession.bookingTime) {
             const now = new Date();
-            const bookingDateTime = new Date(`${gameSession.bookingDate}T${gameSession.bookingTime}`);
+            
+            // Parse booking date and time - handle different formats
+            let bookingDateTime;
+            try {
+                // Try ISO format first: "2024-01-15T11:30"
+                const dateTimeString = `${gameSession.bookingDate}T${gameSession.bookingTime}`;
+                bookingDateTime = new Date(dateTimeString);
+                
+                // Validate the date
+                if (isNaN(bookingDateTime.getTime())) {
+                    console.error('Invalid booking date/time:', dateTimeString);
+                    // Fallback: try parsing date and time separately
+                    const [datePart] = gameSession.bookingDate.split('T');
+                    const [timePart] = gameSession.bookingTime.split('T');
+                    bookingDateTime = new Date(`${datePart}T${timePart}`);
+                }
+                
+                // If still invalid, log error but allow access (don't block due to date parsing issues)
+                if (isNaN(bookingDateTime.getTime())) {
+                    console.error('Could not parse booking date/time. Allowing access.');
+                    return { canAccess: true, gameSession: gameSession };
+                }
+            } catch (error) {
+                console.error('Error parsing booking date/time:', error);
+                // Allow access if date parsing fails (don't block users)
+                return { canAccess: true, gameSession: gameSession };
+            }
             
             // Allow access 15 minutes before booking time
             const accessStartTime = new Date(bookingDateTime.getTime() - 15 * 60 * 1000);
             
             if (now < accessStartTime) {
-                const timeUntilAccess = Math.ceil((accessStartTime - now) / (1000 * 60));
+                const timeUntilAccessMinutes = Math.ceil((accessStartTime - now) / (1000 * 60));
+                const timeUntilAccessHours = Math.floor(timeUntilAccessMinutes / 60);
+                const remainingMinutes = timeUntilAccessMinutes % 60;
+                
+                // Format time message nicely
+                let timeMessage;
+                if (timeUntilAccessHours > 0) {
+                    timeMessage = `${timeUntilAccessHours} hour${timeUntilAccessHours > 1 ? 's' : ''} and ${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}`;
+                } else {
+                    timeMessage = `${timeUntilAccessMinutes} minute${timeUntilAccessMinutes !== 1 ? 's' : ''}`;
+                }
+                
+                // Format booking time for display
+                const bookingTimeDisplay = bookingDateTime.toLocaleTimeString('en-US', { 
+                    hour: 'numeric', 
+                    minute: '2-digit',
+                    hour12: true 
+                });
+                
                 return { 
                     canAccess: false, 
-                    reason: `Game will be available ${timeUntilAccess} minute(s) before your booking time (${gameSession.bookingTime}).` 
+                    reason: `Your game is scheduled for ${gameSession.bookingDate} at ${bookingTimeDisplay}. The game will be available in ${timeMessage} (15 minutes before your booking time).` 
                 };
             }
         }
