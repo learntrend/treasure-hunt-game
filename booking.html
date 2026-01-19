@@ -481,9 +481,8 @@
     <!-- EmailJS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <script>
-        // Initialize EmailJS (you'll need to replace with your EmailJS public key)
-        // For now, we'll use a placeholder - you'll need to set up EmailJS and add your keys
-        emailjs.init("YOUR_EMAILJS_PUBLIC_KEY"); // Replace with actual EmailJS public key
+        // Initialize EmailJS with your public key
+        // EmailJS will be initialized in the sendGameLinkEmail function to ensure it uses the correct key
     </script>
     
     <script>
@@ -1162,33 +1161,59 @@
                 const templateId = 'template_xdcp7so'; // Replace with your EmailJS template ID
                 const publicKey = 'HN28jUjYkvwhLWLBk'; // Replace with your EmailJS public key
                 
-                // Initialize EmailJS
+                // Initialize EmailJS (only if not already initialized)
                 if (typeof emailjs !== 'undefined' && serviceId !== 'YOUR_EMAILJS_SERVICE_ID') {
-                    emailjs.init(publicKey);
-                    
-                    // Build email content
-                    let emailBody = `Hi there!\n\nYou've been invited to play a treasure hunt game!\n\nClick this link to start playing: ${gameLink}\n\nThe game will be available 15 minutes before your scheduled time (${formData.date} at ${formData.time}).\n\nHave fun and enjoy the adventure!\n\nBest regards,\n${formData.name || 'Treasure Hunt Team'}`;
-                    
-                    // Add personal message if provided
-                    if (formData.personalMessage) {
-                        const fromName = formData.messageFrom || formData.name || 'Someone special';
-                        emailBody += `\n\n---\n\nA special message from ${fromName}:\n\n${formData.personalMessage}`;
+                    // Initialize EmailJS only once - check if already initialized
+                    try {
+                        emailjs.init(publicKey);
+                    } catch (initError) {
+                        // If already initialized, that's fine - continue
+                        if (!initError.message || !initError.message.includes('already been initialized')) {
+                            console.warn('EmailJS initialization note:', initError);
+                        }
                     }
                     
+                    // Build email content - match the template structure
+                    // The template uses {{game_link}} and {{from_name}} in the body
+                    // We need to send only the variables that exist in the template
+                    const fromName = formData.messageFrom || formData.name || 'Treasure Hunt Team';
+                    
+                    // Build personal message section if provided
+                    let personalMessageSection = '';
+                    if (formData.personalMessage && formData.personalMessage.trim()) {
+                        personalMessageSection = `\n\n---\n\nA special message from ${fromName}:\n\n${formData.personalMessage}`;
+                    }
+                    
+                    // Template parameters - only include variables that exist in your EmailJS template
+                    // Based on your template, it has: {{subject}}, {{game_link}}, {{from_name}}, {{to_email}}, {{from_email}}
+                    // NOTE: To include personal message, add {{personal_message}} to your EmailJS template
                     const templateParams = {
                         to_email: recipientEmail,
                         from_email: 'meghana.shettigar@gmail.com',
-                        from_name: formData.name || 'Treasure Hunt Team',
-                        subject: 'Your Treasure Hunt Game Link',
-                        message: emailBody,
-                        game_link: gameLink,
-                        recipient_name: recipientEmail.split('@')[0],
-                        booking_date: formData.date,
-                        booking_time: formData.time
+                        from_name: fromName,
+                        subject: 'Your Treasure Hunt Game Link!',
+                        game_link: gameLink
                     };
                     
-                    await emailjs.send(serviceId, templateId, templateParams);
-                    console.log('Email sent successfully via EmailJS');
+                    // Add personal_message if template supports it (uncomment after adding {{personal_message}} to template)
+                    // if (personalMessageSection) {
+                    //     templateParams.personal_message = personalMessageSection;
+                    // }
+                    
+                    // Log the parameters for debugging
+                    console.log('Sending email with parameters:', templateParams);
+                    
+                    try {
+                        const response = await emailjs.send(serviceId, templateId, templateParams);
+                        console.log('Email sent successfully via EmailJS:', response);
+                    } catch (emailError) {
+                        console.error('EmailJS error details:', emailError);
+                        // Log more details if available
+                        if (emailError.text) {
+                            console.error('EmailJS error text:', emailError.text);
+                        }
+                        throw emailError; // Re-throw to be caught by outer catch
+                    }
                 } else {
                     // Fallback: Log email details (for development/testing)
                     let emailBody = `Hi there!\n\nYou've been invited to play a treasure hunt game!\n\nClick this link to start playing: ${gameLink}\n\nThe game will be available 15 minutes before your scheduled time (${formData.date} at ${formData.time}).\n\nHave fun and enjoy the adventure!\n\nBest regards,\n${formData.name || 'Treasure Hunt Team'}`;
