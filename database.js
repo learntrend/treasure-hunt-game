@@ -302,24 +302,46 @@ async function loadGameState() {
         const sessionRef = db.collection('gameSessions').doc(sessionId);
         const docSnap = await sessionRef.get();
 
+        // Validate docSnap is a valid Firestore document snapshot
+        if (!docSnap) {
+            console.warn('docSnap is null or undefined');
+            return null;
+        }
+
         // Check if document exists (handle both Firestore v8 and v9+ syntax)
         let exists = false;
-        if (typeof docSnap.exists === 'function') {
-            // Firestore v8: exists is a function
-            exists = docSnap.exists();
-        } else if (typeof docSnap.exists === 'boolean') {
-            // Firestore v9+: exists is a boolean property
-            exists = docSnap.exists;
-        } else {
-            // Fallback: check if data exists
-            const data = docSnap.data();
-            exists = data !== undefined && data !== null;
+        try {
+            if (typeof docSnap.exists === 'function') {
+                // Firestore v8: exists is a function
+                exists = docSnap.exists();
+            } else if (typeof docSnap.exists === 'boolean') {
+                // Firestore v9+: exists is a boolean property
+                exists = docSnap.exists;
+            } else {
+                // Fallback: check if data exists
+                const data = docSnap.data();
+                exists = data !== undefined && data !== null;
+            }
+        } catch (existsError) {
+            console.error('Error checking document existence:', existsError);
+            // Fallback: try to get data
+            try {
+                const data = docSnap.data();
+                exists = data !== undefined && data !== null;
+            } catch (dataError) {
+                console.error('Error getting document data:', dataError);
+                return null;
+            }
         }
         
         if (exists) {
-            const data = docSnap.data();
-            if (data) {
-                return dbToGameState(data);
+            try {
+                const data = docSnap.data();
+                if (data) {
+                    return dbToGameState(data);
+                }
+            } catch (dataError) {
+                console.error('Error converting document data:', dataError);
             }
         }
         return null;
