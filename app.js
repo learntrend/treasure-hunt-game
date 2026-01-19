@@ -708,17 +708,39 @@ function closeTitbits() {
 // Fetch personal message from database/API
 async function fetchPersonalMessage() {
     try {
-        // Replace this URL with your actual API endpoint
-        const playerName = gameEngine.playerName;
-        const response = await fetch(`/api/personal-message?player=${encodeURIComponent(playerName)}`);
-        
-        if (response.ok) {
-            const data = await response.json();
-            return data.message || getDefaultMessage();
-        } else {
-            // Fallback to default message if API fails
-            return getDefaultMessage();
+        // Try to get personal message from booking/game session
+        if (gameEngine.bookingId && window.DatabaseService) {
+            const sessionId = getSessionId();
+            if (sessionId) {
+                const sessionData = await window.DatabaseService.loadGameStateBySessionId(sessionId);
+                if (sessionData && sessionData.personalMessage) {
+                    // Build message with "From" if available
+                    let message = sessionData.personalMessage;
+                    if (sessionData.messageFrom) {
+                        message = `From ${sessionData.messageFrom},\n\n${message}`;
+                    }
+                    return message;
+                }
+            }
+            
+            // Try to get from booking document
+            if (db) {
+                const bookingDoc = await db.collection('bookings').doc(gameEngine.bookingId).get();
+                if (bookingDoc.exists()) {
+                    const bookingData = bookingDoc.data();
+                    if (bookingData.personalMessage) {
+                        let message = bookingData.personalMessage;
+                        if (bookingData.messageFrom) {
+                            message = `From ${bookingData.messageFrom},\n\n${message}`;
+                        }
+                        return message;
+                    }
+                }
+            }
         }
+        
+        // Fallback to default message
+        return getDefaultMessage();
     } catch (error) {
         console.error('Error fetching personal message:', error);
         // Fallback to default message

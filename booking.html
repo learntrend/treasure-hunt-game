@@ -234,9 +234,31 @@
             gap: 15px;
         }
 
+        /* Number input spinner visibility - show on mobile */
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+            display: none;
+        }
+        
+        /* Show number input arrows on mobile */
         @media (max-width: 768px) {
             .datetime-inputs {
                 grid-template-columns: 1fr;
+            }
+            
+            input[type="number"]::-webkit-inner-spin-button,
+            input[type="number"]::-webkit-outer-spin-button {
+                -webkit-appearance: inner-spin-button;
+                display: block;
+                opacity: 1;
+                height: 20px;
+                width: 20px;
             }
         }
     </style>
@@ -264,10 +286,17 @@
                 <h3>📧 Contact Information</h3>
                 
                 <div class="form-group">
-                    <label for="email">Email Address <span class="required">*</span></label>
+                    <label for="email">Your Email Address <span class="required">*</span></label>
                     <input type="email" id="email" name="email" placeholder="your.email@example.com" required>
                     <small>We'll send your booking confirmation here</small>
                     <div class="error-message" id="email-error"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="recipient-email">Recipient Email Address <span class="required">*</span></label>
+                    <input type="email" id="recipient-email" name="recipient-email" placeholder="recipient@example.com" required>
+                    <small>Game link will be sent to this email address</small>
+                    <div class="error-message" id="recipient-email-error"></div>
                 </div>
 
                 <div class="form-row">
@@ -323,7 +352,7 @@
 
                 <div class="form-group">
                     <label for="players">Number of Players <span class="required">*</span></label>
-                    <input type="number" id="players" name="players" min="1" max="50" placeholder="Enter number of players" required>
+                    <input type="number" id="players" name="players" min="1" max="50" placeholder="Enter number of players" required style="-moz-appearance: textfield;">
                     <small>Enter the total number of players (minimum 1)</small>
                     <div class="error-message" id="players-error"></div>
                 </div>
@@ -331,12 +360,18 @@
 
             <!-- Personal Message -->
             <div class="form-section">
-                <h3>💌 Personal Message</h3>
+                <h3>💌 Personal Message (Optional)</h3>
                 
                 <div class="form-group">
-                    <label for="personal-message">Message for Final Letter <span class="required">*</span></label>
-                    <textarea id="personal-message" name="personal-message" placeholder="Write a special message that will be revealed at the end of the game. This could be a message for your team, a special note, or anything you'd like to say..." required></textarea>
-                    <small>This message will be hidden in the final letter and revealed when the game is completed.</small>
+                    <label for="message-from">From</label>
+                    <input type="text" id="message-from" name="message-from" placeholder="Enter your name or sender name">
+                    <small>This name will appear in the final letter</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="personal-message">Message for Final Letter</label>
+                    <textarea id="personal-message" name="personal-message" placeholder="Write a special message that will be revealed at the end of the game. This could be a message for your team, a special note, or anything you'd like to say..."></textarea>
+                    <small>Optional: This message will appear in the final letter when the game is completed.</small>
                     <div class="error-message" id="personal-message-error"></div>
                 </div>
             </div>
@@ -438,6 +473,17 @@
     <!-- Firebase Configuration -->
     <script src="firebase-config.js"></script>
     <script src="database.js"></script>
+    
+    <!-- EmailJS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    
+    <!-- EmailJS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <script>
+        // Initialize EmailJS (you'll need to replace with your EmailJS public key)
+        // For now, we'll use a placeholder - you'll need to set up EmailJS and add your keys
+        emailjs.init("YOUR_EMAILJS_PUBLIC_KEY"); // Replace with actual EmailJS public key
+    </script>
     
     <script>
         // Wrap in IIFE to avoid variable conflicts with database.js
@@ -858,11 +904,13 @@
             
             const formData = {
                 email: document.getElementById('email').value.trim(),
+                recipientEmail: document.getElementById('recipient-email').value.trim(),
                 name: document.getElementById('name').value.trim(),
                 phone: document.getElementById('phone').value.trim(),
                 date: document.getElementById('date').value,
                 time: timeValue,
                 players: document.getElementById('players').value,
+                messageFrom: document.getElementById('message-from').value.trim(),
                 personalMessage: document.getElementById('personal-message').value.trim(),
                 paymentMethod: document.querySelector('input[name="payment"]:checked')?.value,
                 referral: document.getElementById('referral').value,
@@ -893,7 +941,15 @@
             
             if (!formData.email || !formData.email.includes('@')) {
                 markFieldError('email', 'Please enter a valid email address');
-                errors.push('Email address is required');
+                errors.push('Your email address is required');
+                isValid = false;
+            }
+            
+            // Validate recipient email
+            const recipientEmail = document.getElementById('recipient-email').value.trim();
+            if (!recipientEmail || !recipientEmail.includes('@')) {
+                markFieldError('recipient-email', 'Please enter a valid recipient email address');
+                errors.push('Recipient email address is required');
                 isValid = false;
             }
             
@@ -942,11 +998,7 @@
                 isValid = false;
             }
             
-            if (!formData.personalMessage || formData.personalMessage.length < 10) {
-                markFieldError('personal-message', 'Please enter a personal message (at least 10 characters)');
-                errors.push('Personal message is required (at least 10 characters)');
-                isValid = false;
-            }
+            // Personal message is now optional, no validation needed
             
             if (!formData.paymentMethod) {
                 // Highlight payment options
@@ -975,7 +1027,16 @@
                 // Scroll to first error field
                 if (firstErrorField) {
                     console.log('Scrolling to first error field:', firstErrorField.id || firstErrorField.className);
-                    firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // For time fields, scroll to the time container
+                    if (firstErrorField.id === 'time-hour' || firstErrorField.id === 'time-minute') {
+                        const timeContainer = document.getElementById('time-hour').closest('.form-group');
+                        if (timeContainer) {
+                            timeContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    } else {
+                        firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                    
                     // Focus the field if it's an input
                     if (firstErrorField.tagName === 'INPUT' || firstErrorField.tagName === 'SELECT' || firstErrorField.tagName === 'TEXTAREA') {
                         setTimeout(() => {
@@ -1024,12 +1085,21 @@
                         const sessionId = await window.DatabaseService.createGameSessionFromBooking(bookingId, formData);
                         if (sessionId) {
                             console.log('Game session created:', sessionId);
+                            const gameLink = `${window.location.origin}${window.location.pathname.replace('booking.html', 'index.html')}?bookingId=${bookingId}`;
                             // Store game link in booking document for easy access
                             await dbRef.collection('bookings').doc(bookingId).update({
                                 gameSessionId: sessionId,
-                                gameLink: `${window.location.origin}${window.location.pathname.replace('booking.html', 'index.html')}?bookingId=${bookingId}`,
+                                gameLink: gameLink,
                                 updatedAt: firebase.firestore.Timestamp.now()
                             });
+                            
+                            // Send email to recipient with game link
+                            try {
+                                await sendGameLinkEmail(formData.recipientEmail, gameLink, formData);
+                            } catch (emailError) {
+                                console.error('Error sending email:', emailError);
+                                // Don't fail the booking if email fails
+                            }
                         }
                     } catch (gameError) {
                         console.error('Error creating game session:', gameError);

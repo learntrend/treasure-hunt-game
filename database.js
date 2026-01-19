@@ -699,6 +699,9 @@ async function createGameSessionFromBooking(bookingId, bookingData) {
             playerType: bookingData.players > 1 ? 'group' : 'solo',
             playerName: bookingData.name || '',
             email: bookingData.email || '',
+            recipientEmail: bookingData.recipientEmail || bookingData.email || '',
+            personalMessage: bookingData.personalMessage || null,
+            messageFrom: bookingData.messageFrom || null,
             gameStatus: 'pending', // pending, active, completed, abandoned
             currentLocationIndex: 0,
             score: 100, // Starting bonus
