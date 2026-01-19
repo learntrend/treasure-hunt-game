@@ -705,26 +705,28 @@
                 window.DatabaseService.initializeFirebase();
             }
             
-            // Load hours immediately - don't wait for database
-            // Hours will show all slots, then filter once database is ready
+            // ALWAYS populate hour dropdown immediately on page load
+            const hourSelect = document.getElementById('time-hour');
+            if (hourSelect) {
+                console.log('Populating hour dropdown on page load...');
+                const availableHours = [];
+                for (let hour = 9; hour <= 19; hour++) {
+                    availableHours.push(hour.toString().padStart(2, '0'));
+                }
+                hourSelect.innerHTML = '<option value="">Hour</option>';
+                availableHours.forEach(hour => {
+                    const option = document.createElement('option');
+                    option.value = hour;
+                    option.textContent = hour;
+                    hourSelect.appendChild(option);
+                });
+                hourSelect.disabled = false;
+                console.log('Hour dropdown populated with', availableHours.length, 'hours');
+            }
+            
+            // Load hours with database filtering if date is selected
             if (dateInput.value) {
                 loadAvailableTimeSlots(dateInput.value);
-            } else {
-                // Even without date, ensure hour dropdown is populated
-                const hourSelect = document.getElementById('time-hour');
-                if (hourSelect && hourSelect.options.length <= 1) {
-                    const availableHours = [];
-                    for (let hour = 9; hour <= 19; hour++) {
-                        availableHours.push(hour.toString().padStart(2, '0'));
-                    }
-                    hourSelect.innerHTML = '<option value="">Hour</option>';
-                    availableHours.forEach(hour => {
-                        const option = document.createElement('option');
-                        option.value = hour;
-                        option.textContent = hour;
-                        hourSelect.appendChild(option);
-                    });
-                }
             }
             
             // Ensure db is set for future database operations
@@ -942,18 +944,32 @@
             }
             
             if (!isValid) {
+                console.log('Validation failed with', errors.length, 'errors:', errors);
+                console.log('First error field:', firstErrorField);
                 showFormErrors(errors);
                 
                 // Scroll to first error field
                 if (firstErrorField) {
+                    console.log('Scrolling to first error field:', firstErrorField.id || firstErrorField.className);
                     firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     // Focus the field if it's an input
                     if (firstErrorField.tagName === 'INPUT' || firstErrorField.tagName === 'SELECT' || firstErrorField.tagName === 'TEXTAREA') {
-                        setTimeout(() => firstErrorField.focus(), 300);
+                        setTimeout(() => {
+                            firstErrorField.focus();
+                            console.log('Focused on error field');
+                        }, 300);
+                    }
+                } else {
+                    // Fallback: scroll to error container
+                    const errorContainer = document.getElementById('form-errors');
+                    if (errorContainer) {
+                        errorContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     }
                 }
                 return;
             }
+            
+            console.log('Validation passed');
             
             // Disable submit button
             const submitBtn = document.getElementById('submit-booking-btn');
