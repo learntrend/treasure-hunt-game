@@ -21,6 +21,12 @@ class GameEngine {
         this.answersSubmitted = new Set();
         this.locationNamesSubmitted = new Set(); // Track location names that have been correctly identified
         this.completedLocations = []; // Track completed locations with their names and answers
+        // Game access control fields
+        this.bookingId = null;
+        this.bookingDate = null;
+        this.bookingTime = null;
+        this.gameStatus = 'pending'; // pending, active, completed, abandoned
+        this.lastPlayedAt = null;
     }
 
     // Initialize game with player data
@@ -416,7 +422,13 @@ class GameEngine {
             completedLocations: this.completedLocations,
             hintsUsed: this.hintsUsed,
             answersSubmitted: this.answersSubmitted,
-            locationNamesSubmitted: this.locationNamesSubmitted
+            locationNamesSubmitted: this.locationNamesSubmitted,
+            // Game access control fields
+            bookingId: this.bookingId,
+            bookingDate: this.bookingDate,
+            bookingTime: this.bookingTime,
+            gameStatus: this.gameStatus,
+            lastPlayedAt: this.lastPlayedAt
         };
     }
 

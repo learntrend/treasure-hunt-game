@@ -81,8 +81,8 @@ function clearSessionId() {
 // Fields: (see saveCompletedGame function)
 
 // Convert game engine state to database format
-function gameStateToDB(gameEngine, playerType) {
-    return {
+function gameStateToDB(gameEngine, playerType, bookingId = null) {
+    const state = {
         sessionId: getSessionId(),
         playerType: playerType,
         playerName: gameEngine.playerName,
@@ -102,9 +102,32 @@ function gameStateToDB(gameEngine, playerType) {
         },
         answersSubmitted: Array.from(gameEngine.answersSubmitted || []),
         locationNamesSubmitted: Array.from(gameEngine.locationNamesSubmitted || []),
-        createdAt: firebase.firestore.Timestamp.now(),
         updatedAt: firebase.firestore.Timestamp.now()
     };
+
+    // Add booking-related fields if they exist
+    if (gameEngine.bookingId || bookingId) {
+        state.bookingId = gameEngine.bookingId || bookingId;
+    }
+    if (gameEngine.bookingDate) {
+        state.bookingDate = gameEngine.bookingDate;
+    }
+    if (gameEngine.bookingTime) {
+        state.bookingTime = gameEngine.bookingTime;
+    }
+    if (gameEngine.gameStatus) {
+        state.gameStatus = gameEngine.gameStatus;
+    }
+    if (gameEngine.lastPlayedAt) {
+        state.lastPlayedAt = firebase.firestore.Timestamp.fromMillis(gameEngine.lastPlayedAt);
+    }
+
+    // Only set createdAt if it's a new session
+    if (!gameEngine.createdAt) {
+        state.createdAt = firebase.firestore.Timestamp.now();
+    }
+
+    return state;
 }
 
 // Convert database format back to game engine state
@@ -129,7 +152,13 @@ function dbToGameState(data) {
         },
         answersSubmitted: new Set(data.answersSubmitted || []),
         locationNamesSubmitted: new Set(data.locationNamesSubmitted || []),
-        playerType: data.playerType || 'solo'
+        playerType: data.playerType || 'solo',
+        // Game access control fields
+        bookingId: data.bookingId || null,
+        bookingDate: data.bookingDate || null,
+        bookingTime: data.bookingTime || null,
+        gameStatus: data.gameStatus || 'pending',
+        lastPlayedAt: data.lastPlayedAt ? (data.lastPlayedAt.toMillis ? data.lastPlayedAt.toMillis() : data.lastPlayedAt) : null
     };
 
     return state;
@@ -166,10 +195,16 @@ async function saveGameState(gameEngine, playerType) {
 
     try {
         const sessionId = getSessionId();
-        const gameStateData = gameStateToDB(gameEngine, playerType);
+        const bookingId = gameEngine.bookingId || null;
+        const gameStateData = gameStateToDB(gameEngine, playerType, bookingId);
 
         const sessionRef = db.collection('gameSessions').doc(sessionId);
         await sessionRef.set(gameStateData, { merge: true });
+        
+        // Update lastPlayedAt when saving
+        await sessionRef.update({
+            lastPlayedAt: firebase.firestore.Timestamp.now()
+        });
         
         // Also save to localStorage as backup
         const state = {
@@ -190,7 +225,11 @@ async function saveGameState(gameEngine, playerType) {
                 mapHints: Array.from(gameEngine.hintsUsed.mapHints)
             },
             answersSubmitted: Array.from(gameEngine.answersSubmitted),
-            locationNamesSubmitted: Array.from(gameEngine.locationNamesSubmitted)
+            locationNamesSubmitted: Array.from(gameEngine.locationNamesSubmitted),
+            bookingId: gameEngine.bookingId || bookingId || null,
+            bookingDate: gameEngine.bookingDate || null,
+            bookingTime: gameEngine.bookingTime || null,
+            gameStatus: gameEngine.gameStatus || 'pending'
         };
         localStorage.setItem('gameState', JSON.stringify(state));
         
@@ -584,6 +623,193 @@ async function loadGameStateBySessionId(documentId) {
     }
 }
 
+// ============================================
+// GAME ACCESS CONTROL FUNCTIONS
+// ============================================
+
+// Create game session from booking
+async function createGameSessionFromBooking(bookingId, bookingData) {
+    if (!db || !isInitialized) {
+        console.warn('Database not initialized. Cannot create game session.');
+        return null;
+    }
+
+    try {
+        // Check if game session already exists for this booking
+        const existingSession = await db.collection('gameSessions')
+            .where('bookingId', '==', bookingId)
+            .limit(1)
+            .get();
+
+        if (!existingSession.empty) {
+            const existingDoc = existingSession.docs[0];
+            return existingDoc.id; // Return existing session ID
+        }
+
+        // Create new game session
+        const sessionId = generateSessionId();
+        setSessionId(sessionId);
+
+        const gameSessionData = {
+            sessionId: sessionId,
+            bookingId: bookingId,
+            bookingDate: bookingData.date || null,
+            bookingTime: bookingData.time || null,
+            playerType: bookingData.players > 1 ? 'group' : 'solo',
+            playerName: bookingData.name || '',
+            email: bookingData.email || '',
+            gameStatus: 'pending', // pending, active, completed, abandoned
+            currentLocationIndex: 0,
+            score: 100, // Starting bonus
+            createdAt: firebase.firestore.Timestamp.now(),
+            updatedAt: firebase.firestore.Timestamp.now()
+        };
+
+        await db.collection('gameSessions').doc(sessionId).set(gameSessionData);
+        return sessionId;
+    } catch (error) {
+        console.error('Error creating game session from booking:', error);
+        return null;
+    }
+}
+
+// Check if game can be accessed (time-based and status checks)
+async function canAccessGame(bookingId = null, sessionId = null) {
+    if (!db || !isInitialized) {
+        return { canAccess: false, reason: 'Database not initialized' };
+    }
+
+    try {
+        let gameSession = null;
+
+        // Find game session by bookingId or sessionId
+        if (bookingId) {
+            const bookingQuery = await db.collection('gameSessions')
+                .where('bookingId', '==', bookingId)
+                .limit(1)
+                .get();
+            
+            if (!bookingQuery.empty) {
+                gameSession = { id: bookingQuery.docs[0].id, ...bookingQuery.docs[0].data() };
+            }
+        } else if (sessionId) {
+            const sessionDoc = await db.collection('gameSessions').doc(sessionId).get();
+            if (sessionDoc.exists()) {
+                gameSession = { id: sessionDoc.id, ...sessionDoc.data() };
+            }
+        } else {
+            // Try to get from current session
+            const currentSessionId = getSessionId();
+            if (currentSessionId) {
+                const sessionDoc = await db.collection('gameSessions').doc(currentSessionId).get();
+                if (sessionDoc.exists()) {
+                    gameSession = { id: sessionDoc.id, ...sessionDoc.data() };
+                }
+            }
+        }
+
+        if (!gameSession) {
+            return { canAccess: false, reason: 'Game session not found' };
+        }
+
+        // Check game status
+        const gameStatus = gameSession.gameStatus || 'pending';
+        
+        if (gameStatus === 'completed') {
+            return { canAccess: false, reason: 'Game already completed. You cannot play again.' };
+        }
+
+        if (gameStatus === 'abandoned') {
+            // Check if enough time has passed (e.g., 1 hour after last play)
+            const lastPlayedAt = gameSession.lastPlayedAt;
+            if (lastPlayedAt) {
+                const lastPlayed = lastPlayedAt.toMillis ? lastPlayedAt.toMillis() : lastPlayedAt;
+                const oneHourAgo = Date.now() - (60 * 60 * 1000);
+                
+                if (lastPlayed < oneHourAgo) {
+                    return { canAccess: false, reason: 'Game session expired. You cannot resume after leaving.' };
+                }
+            } else {
+                return { canAccess: false, reason: 'Game session expired. You cannot resume after leaving.' };
+            }
+        }
+
+        // Check booking time (if booking date/time exists)
+        if (gameSession.bookingDate && gameSession.bookingTime) {
+            const now = new Date();
+            const bookingDateTime = new Date(`${gameSession.bookingDate}T${gameSession.bookingTime}`);
+            
+            // Allow access 15 minutes before booking time
+            const accessStartTime = new Date(bookingDateTime.getTime() - 15 * 60 * 1000);
+            
+            if (now < accessStartTime) {
+                const timeUntilAccess = Math.ceil((accessStartTime - now) / (1000 * 60));
+                return { 
+                    canAccess: false, 
+                    reason: `Game will be available ${timeUntilAccess} minute(s) before your booking time (${gameSession.bookingTime}).` 
+                };
+            }
+        }
+
+        return { canAccess: true, gameSession: gameSession };
+    } catch (error) {
+        console.error('Error checking game access:', error);
+        return { canAccess: false, reason: 'Error checking access: ' + error.message };
+    }
+}
+
+// Update game status
+async function updateGameStatus(sessionId, status) {
+    if (!db || !isInitialized) {
+        console.warn('Database not initialized. Cannot update game status.');
+        return false;
+    }
+
+    try {
+        const updateData = {
+            gameStatus: status,
+            updatedAt: firebase.firestore.Timestamp.now()
+        };
+
+        if (status === 'active' && !gameSession.startTime) {
+            updateData.startTime = firebase.firestore.Timestamp.now();
+        }
+
+        if (status === 'completed' || status === 'abandoned') {
+            updateData.lastPlayedAt = firebase.firestore.Timestamp.now();
+        }
+
+        await db.collection('gameSessions').doc(sessionId).update(updateData);
+        return true;
+    } catch (error) {
+        console.error('Error updating game status:', error);
+        return false;
+    }
+}
+
+// Get game session by booking ID (for group access)
+async function getGameSessionByBookingId(bookingId) {
+    if (!db || !isInitialized) {
+        return null;
+    }
+
+    try {
+        const querySnapshot = await db.collection('gameSessions')
+            .where('bookingId', '==', bookingId)
+            .limit(1)
+            .get();
+
+        if (!querySnapshot.empty) {
+            const doc = querySnapshot.docs[0];
+            return { id: doc.id, ...doc.data() };
+        }
+        return null;
+    } catch (error) {
+        console.error('Error getting game session by booking ID:', error);
+        return null;
+    }
+}
+
 // Export functions as global object
 window.DatabaseService = {
     saveGameState,
@@ -597,5 +823,10 @@ window.DatabaseService = {
     searchSavedGamesByPlayerName,
     loadGameStateBySessionId,
     isInitialized: () => isInitialized,
-    initializeFirebase
+    initializeFirebase,
+    // New game access control functions
+    createGameSessionFromBooking,
+    canAccessGame,
+    updateGameStatus,
+    getGameSessionByBookingId
 };

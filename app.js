@@ -1,8 +1,9 @@
 // Main Application Logic - Handles UI interactions and screen management
 
 let gameEngine;
-let backgroundMusic;
-let isMusicPlaying = false;
+// Audio/Music - COMMENTED OUT FOR NOW
+// let backgroundMusic;
+// let isMusicPlaying = false;
 let currentPlayerType = 'solo'; // Track current player type (solo/group)
 let saveStateInterval = null; // Interval for auto-saving game state
 let waitingForGameplayStart = false; // Flag to track if we're waiting to start gameplay after character message
@@ -16,9 +17,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     gameEngine = new GameEngine();
     
-    // Initialize background music
-    backgroundMusic = document.getElementById('background-music');
-    backgroundMusic.volume = 0.3; // Set volume to 30%
+    // Initialize background music - COMMENTED OUT FOR NOW
+    // backgroundMusic = document.getElementById('background-music');
+    // if (backgroundMusic) {
+    //     backgroundMusic.volume = 0.3; // Set volume to 30%
+    // }
     
     // Set up callbacks
     gameEngine.onTimerUpdate = (time) => {
@@ -32,6 +35,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Set current year in final screen
     document.getElementById('current-year').textContent = new Date().getFullYear();
     
+    // Check for booking-based access
+    await checkBookingAccess();
+    
     // Check for saved game state and resume if available
     await checkForSavedGame();
     
@@ -41,6 +47,81 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Auto-save game state every 30 seconds (only when game is running)
     startAutoSave();
 });
+
+// Get URL parameter
+function getURLParameter(name) {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(name);
+}
+
+// Get session ID (helper function)
+function getSessionId() {
+    if (window.DatabaseService && typeof window.DatabaseService.getSessionId === 'function') {
+        return window.DatabaseService.getSessionId();
+    }
+    // Fallback to localStorage
+    return localStorage.getItem('gameSessionId');
+}
+
+// Check booking-based access
+async function checkBookingAccess() {
+    const bookingId = getURLParameter('bookingId');
+    
+    if (!bookingId) {
+        // No booking ID - allow normal game flow (for testing/development)
+        return;
+    }
+    
+    if (!window.DatabaseService || !window.DatabaseService.isInitialized()) {
+        console.warn('Database not initialized. Cannot check booking access.');
+        return;
+    }
+    
+    try {
+        // Check if we can access the game
+        const accessCheck = await window.DatabaseService.canAccessGame(bookingId);
+        
+        if (!accessCheck.canAccess) {
+            // Show access denied message
+            const welcomeScreen = document.getElementById('welcome-screen');
+            if (welcomeScreen) {
+                welcomeScreen.innerHTML = `
+                    <div class="welcome-container">
+                        <h1 class="game-title">Access Restricted</h1>
+                        <p class="game-subtitle" style="color: var(--accent-color); margin-top: 20px;">
+                            ${accessCheck.reason || 'You cannot access this game at this time.'}
+                        </p>
+                        <p style="margin-top: 20px; color: #666;">
+                            If you believe this is an error, please contact support.
+                        </p>
+                    </div>
+                `;
+            }
+            return;
+        }
+        
+        // Access granted - load game session
+        const gameSession = accessCheck.gameSession;
+        if (gameSession) {
+            // Set booking info in game engine
+            gameEngine.bookingId = bookingId;
+            gameEngine.bookingDate = gameSession.bookingDate;
+            gameEngine.bookingTime = gameSession.bookingTime;
+            gameEngine.gameStatus = gameSession.gameStatus || 'pending';
+            
+            // If game is already active, restore state
+            if (gameSession.gameStatus === 'active' && gameSession.currentLocationIndex > 0) {
+                const savedState = await window.DatabaseService.loadGameStateBySessionId(gameSession.id);
+                if (savedState) {
+                    gameEngine.restoreState(savedState);
+                    // Will be handled by checkForSavedGame
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error checking booking access:', error);
+    }
+}
 
 // Set up all event listeners
 function setupEventListeners() {
@@ -85,7 +166,8 @@ function setupEventListeners() {
         }
     });
     document.getElementById('toggle-locations-panel-btn').addEventListener('click', toggleLocationsPanel);
-    document.getElementById('music-toggle-btn').addEventListener('click', toggleMusic);
+    // Music toggle - COMMENTED OUT FOR NOW
+    // document.getElementById('music-toggle-btn').addEventListener('click', toggleMusic);
     
     // Titbits screen
     document.getElementById('close-titbits-btn').addEventListener('click', closeTitbits);
@@ -127,7 +209,8 @@ function updateNameLabel(groupSize) {
     }
 }
 
-// Toggle background music
+// Toggle background music - COMMENTED OUT FOR NOW
+/*
 function toggleMusic() {
     const musicBtn = document.getElementById('music-toggle-btn');
     const musicIcon = document.getElementById('music-icon');
@@ -147,6 +230,7 @@ function toggleMusic() {
         isMusicPlaying = true;
     }
 }
+*/
 
 // Show tutorial screen
 function showTutorial() {
@@ -163,6 +247,7 @@ async function startGame() {
     const playerName = document.getElementById('player-name').value.trim();
     const groupSize = document.getElementById('group-size').value;
     const groupNames = document.getElementById('group-names').value.trim();
+    const bookingId = getURLParameter('bookingId');
     
     if (!playerName) {
         const label = groupSize === 'group' ? 'team name' : 'name';
@@ -175,9 +260,39 @@ async function startGame() {
         return;
     }
     
-    // Clear any previous game session
-    if (window.DatabaseService) {
-        await window.DatabaseService.deleteGameSession();
+    // If booking-based game, check access first
+    if (bookingId && window.DatabaseService && window.DatabaseService.isInitialized()) {
+        const accessCheck = await window.DatabaseService.canAccessGame(bookingId);
+        
+        if (!accessCheck.canAccess) {
+            alert(accessCheck.reason || 'You cannot start this game at this time.');
+            return;
+        }
+        
+        // Get or create game session
+        const gameSession = accessCheck.gameSession;
+        if (gameSession) {
+            // Use existing session
+            gameEngine.bookingId = bookingId;
+            gameEngine.bookingDate = gameSession.bookingDate;
+            gameEngine.bookingTime = gameSession.bookingTime;
+            gameEngine.gameStatus = 'active';
+            
+            // Update game status to active
+            await window.DatabaseService.updateGameStatus(gameSession.id, 'active');
+        } else {
+            // Create new session from booking
+            // Note: This would require fetching booking data first
+            // For now, we'll create session with booking ID
+            gameEngine.bookingId = bookingId;
+            gameEngine.gameStatus = 'active';
+        }
+    } else {
+        // Non-booking game (for testing/development)
+        // Clear any previous game session
+        if (window.DatabaseService) {
+            await window.DatabaseService.deleteGameSession();
+        }
     }
     
     // Store player type
@@ -561,6 +676,15 @@ function getDefaultMessage() {
 async function showFinalScreen() {
     // Stop timer
     gameEngine.stopTimer();
+    
+    // Update game status to completed
+    if (window.DatabaseService && window.DatabaseService.isInitialized() && gameEngine.bookingId) {
+        const sessionId = getSessionId();
+        if (sessionId) {
+            await window.DatabaseService.updateGameStatus(sessionId, 'completed');
+        }
+    }
+    gameEngine.gameStatus = 'completed';
     
     // Fetch personal message from database
     const personalMessage = await fetchPersonalMessage();

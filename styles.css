@@ -550,7 +550,7 @@ body::before {
 .location-stage-indicator #stage-text {
     font-family: 'Cinzel', serif;
     font-size: 1rem;
-    color: var(--text-dark);
+    color: #e0e0e0;
     font-weight: 600;
     letter-spacing: 0.5px;
 }
