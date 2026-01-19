@@ -476,17 +476,18 @@ function handleSubmitLocationName() {
             // Hide location name input
             document.getElementById('location-name-input-container').style.display = 'none';
             
-            // Show location confirmation with scroll animation
+            // Show location confirmation (no animation - keep static)
             document.getElementById('location-name').textContent = location.locationName || location.name;
             document.getElementById('location-description').textContent = location.description;
             const locationInfoSection = document.getElementById('location-info-section');
             locationInfoSection.style.display = 'block';
-            locationInfoSection.classList.add('scroll-reveal');
+            // Remove scroll-reveal class to keep it static
+            locationInfoSection.classList.remove('scroll-reveal');
             
             // Save game state after correct location name
             saveGameState();
             
-            // Show question section after a short delay with scroll animation
+            // Show question section after a short delay with fade-in animation only
             setTimeout(() => {
                 showQuestionSection();
             }, 1500);
@@ -516,7 +517,14 @@ function showQuestionSection() {
     
     const questionSection = document.getElementById('question-section');
     questionSection.style.display = 'block';
-    questionSection.classList.add('scroll-reveal');
+    // Remove scroll-reveal and use fade-in instead
+    questionSection.classList.remove('scroll-reveal');
+    questionSection.classList.add('fade-in');
+    // Remove fade-in class after animation completes
+    setTimeout(() => {
+        questionSection.classList.remove('fade-in');
+    }, 1000);
+    
     document.getElementById('action-buttons-container').style.display = 'block';
     
     // Reset hint buttons (text hint for question section)
