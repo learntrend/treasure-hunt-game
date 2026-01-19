@@ -440,9 +440,13 @@
     <script src="database.js"></script>
     
     <script>
-        // Use localDb to avoid conflict with database.js which also declares 'db'
-        let localDb = null;
-        let isInitialized = false;
+        // Wrap in IIFE to avoid variable conflicts with database.js
+        (function() {
+            'use strict';
+            
+            // Use localDb to avoid conflict with database.js which also declares 'db'
+            let localDb = null;
+            let isInitialized = false;
 
         // Initialize Firebase
         function initializeFirebase() {
@@ -466,20 +470,7 @@
             }
         }
 
-        // Select payment option - make it globally accessible
-        window.selectPayment = function(method) {
-            document.querySelectorAll('.payment-option').forEach(opt => {
-                opt.classList.remove('selected');
-            });
-            const paymentInput = document.getElementById(`payment-${method}`);
-            if (paymentInput) {
-                paymentInput.checked = true;
-                const paymentOption = paymentInput.closest('.payment-option');
-                if (paymentOption) {
-                    paymentOption.classList.add('selected');
-                }
-            }
-        };
+        // selectPayment is defined at the end of the script (outside IIFE) for global access
 
         // Generate time slots (15-minute intervals from 09:00 to 19:00 UK time)
         function generateTimeSlots() {
