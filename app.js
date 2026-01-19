@@ -219,8 +219,8 @@ function setupEventListeners() {
     if (closeTitbitsBtn) closeTitbitsBtn.addEventListener('click', closeTitbits);
     
     // Hint modal
-    const closeHintModal = document.getElementById('close-hint-modal');
-    if (closeHintModal) closeHintModal.addEventListener('click', closeHintModal);
+    const closeHintModalBtn = document.getElementById('close-hint-modal');
+    if (closeHintModalBtn) closeHintModalBtn.addEventListener('click', closeHintModal);
     
     // Feedback modal
     const closeFeedbackModal = document.getElementById('close-feedback-modal');
