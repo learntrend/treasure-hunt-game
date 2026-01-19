@@ -315,7 +315,8 @@
     <script src="database.js"></script>
     
     <script>
-        let db = null;
+        // Use localDb to avoid conflict with database.js which also declares 'db'
+        let localDb = null;
         let activeSessionsData = [];
         let completedGamesData = [];
         let bookingsData = [];
@@ -329,7 +330,7 @@
 
             try {
                 firebase.initializeApp(firebaseConfig);
-                db = firebase.firestore();
+                localDb = firebase.firestore();
                 return true;
             } catch (error) {
                 console.error('Error initializing Firebase:', error);
@@ -357,7 +358,7 @@
 
         // Load active game sessions
         async function loadActiveSessions() {
-            if (!db) {
+            if (!localDb) {
                 if (!initializeFirebase()) return;
             }
 
@@ -365,7 +366,7 @@
             container.innerHTML = '<div class="loading">Loading...</div>';
 
             try {
-                const snapshot = await db.collection('gameSessions')
+                const snapshot = await localDb.collection('gameSessions')
                     .orderBy('updatedAt', 'desc')
                     .get();
 
@@ -501,7 +502,7 @@
 
         // Load completed games
         async function loadCompletedGames() {
-            if (!db) {
+            if (!localDb) {
                 if (!initializeFirebase()) return;
             }
 
@@ -509,7 +510,7 @@
             container.innerHTML = '<div class="loading">Loading...</div>';
 
             try {
-                const snapshot = await db.collection('completedGames')
+                const snapshot = await localDb.collection('completedGames')
                     .orderBy('completedAt', 'desc')
                     .limit(100)
                     .get();
@@ -651,7 +652,7 @@
 
         // Load leaderboard
         async function loadLeaderboard(type) {
-            if (!db) {
+            if (!localDb) {
                 if (!initializeFirebase()) return;
             }
 
@@ -659,7 +660,7 @@
             container.innerHTML = '<div class="loading">Loading leaderboard...</div>';
 
             try {
-                const snapshot = await db.collection('completedGames')
+                const snapshot = await localDb.collection('completedGames')
                     .where('playerType', '==', type)
                     .orderBy('calculatedScore', 'desc')
                     .limit(50)
@@ -783,7 +784,7 @@
 
         // Load bookings from Firebase
         async function loadBookings() {
-            if (!db) {
+            if (!localDb) {
                 if (!initializeFirebase()) return;
             }
 
@@ -796,7 +797,7 @@
             completedContainer.innerHTML = '<div class="loading">Loading...</div>';
 
             try {
-                const snapshot = await db.collection('bookings')
+                const snapshot = await localDb.collection('bookings')
                     .orderBy('date', 'asc')
                     .orderBy('time', 'asc')
                     .get();
@@ -1085,7 +1086,7 @@
 
         // Save booking edit
         async function saveBookingEdit(bookingId) {
-            if (!db) {
+            if (!localDb) {
                 alert('Database not available');
                 return;
             }
@@ -1101,7 +1102,7 @@
                     updatedAt: firebase.firestore.Timestamp.now()
                 };
 
-                await db.collection('bookings').doc(bookingId).update(updates);
+                await localDb.collection('bookings').doc(bookingId).update(updates);
                 
                 // Close modal
                 const modal = document.querySelector('.modal');
@@ -1119,7 +1120,7 @@
 
         // Generate/Copy game link for a booking
         async function generateGameLink(bookingId) {
-            if (!db) {
+            if (!localDb) {
                 alert('Database not available');
                 return;
             }
@@ -1143,7 +1144,7 @@
                     
                     if (gameSessionId) {
                         // Update booking with game session info
-                        await db.collection('bookings').doc(bookingId).update({
+                        await localDb.collection('bookings').doc(bookingId).update({
                             gameSessionId: gameSessionId,
                             updatedAt: firebase.firestore.Timestamp.now()
                         });
@@ -1165,7 +1166,7 @@
 
                 // Update booking with game link if not already set
                 if (!booking.gameLink) {
-                    await db.collection('bookings').doc(bookingId).update({
+                    await localDb.collection('bookings').doc(bookingId).update({
                         gameLink: gameLink,
                         updatedAt: firebase.firestore.Timestamp.now()
                     });
