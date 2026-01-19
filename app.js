@@ -238,6 +238,10 @@ function setupEventListeners() {
     // Character modals
     document.getElementById('close-character-intro-btn').addEventListener('click', closeCharacterIntro);
     document.getElementById('close-character-popup-btn').addEventListener('click', closeCharacterPopup);
+    const closeCharacterPopupXBtn = document.getElementById('close-character-popup-x-btn');
+    if (closeCharacterPopupXBtn) {
+        closeCharacterPopupXBtn.addEventListener('click', closeCharacterPopup);
+    }
     
     // Setup rating buttons
     setupRatingButtons();
