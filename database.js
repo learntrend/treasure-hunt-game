@@ -713,7 +713,8 @@ async function canAccessGame(bookingId = null, sessionId = null) {
             }
         } else if (sessionId) {
             const sessionDoc = await db.collection('gameSessions').doc(sessionId).get();
-            if (sessionDoc.exists()) {
+            const docExists = typeof sessionDoc.exists === 'function' ? sessionDoc.exists() : sessionDoc.exists;
+            if (docExists) {
                 gameSession = { id: sessionDoc.id, ...sessionDoc.data() };
             }
         } else {
@@ -721,7 +722,8 @@ async function canAccessGame(bookingId = null, sessionId = null) {
             const currentSessionId = getSessionId();
             if (currentSessionId) {
                 const sessionDoc = await db.collection('gameSessions').doc(currentSessionId).get();
-                if (sessionDoc.exists()) {
+                const docExists = typeof sessionDoc.exists === 'function' ? sessionDoc.exists() : sessionDoc.exists;
+                if (docExists) {
                     gameSession = { id: sessionDoc.id, ...sessionDoc.data() };
                 }
             }
