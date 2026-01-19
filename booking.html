@@ -466,14 +466,20 @@
             }
         }
 
-        // Select payment option
-        function selectPayment(method) {
+        // Select payment option - make it globally accessible
+        window.selectPayment = function(method) {
             document.querySelectorAll('.payment-option').forEach(opt => {
                 opt.classList.remove('selected');
             });
-            document.getElementById(`payment-${method}`).checked = true;
-            document.getElementById(`payment-${method}`).closest('.payment-option').classList.add('selected');
-        }
+            const paymentInput = document.getElementById(`payment-${method}`);
+            if (paymentInput) {
+                paymentInput.checked = true;
+                const paymentOption = paymentInput.closest('.payment-option');
+                if (paymentOption) {
+                    paymentOption.classList.add('selected');
+                }
+            }
+        };
 
         // Generate time slots (15-minute intervals from 09:00 to 19:00 UK time)
         function generateTimeSlots() {
