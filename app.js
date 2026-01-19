@@ -213,6 +213,9 @@ function loadCurrentLocation() {
     const location = gameEngine.getCurrentLocation();
     if (!location) return;
     
+    // Update location stage indicator
+    updateLocationStageIndicator();
+    
     // Apply fade-in animation to clue section
     const clueSection = document.getElementById('clue-section');
     clueSection.classList.add('fade-in');
@@ -818,6 +821,16 @@ function showScreen(screenId) {
     } else {
         locationsPanel.style.display = 'none';
     }
+    
+    // Hide stage indicator on non-game screens
+    const stageIndicator = document.getElementById('location-stage-indicator');
+    if (stageIndicator) {
+        if (screenId === 'game-screen') {
+            // Will be shown/hidden by loadCurrentLocation
+        } else {
+            stageIndicator.style.display = 'none';
+        }
+    }
 }
 
 // Update timer display
@@ -881,6 +894,42 @@ function resetHintButtons() {
         } else {
             mapHintBtn.textContent = '🗺️ Map Hint (-50 pts)';
         }
+    }
+}
+
+// Update location stage indicator
+function updateLocationStageIndicator() {
+    const location = gameEngine.getCurrentLocation();
+    if (!location) return;
+    
+    const currentLocationNumber = gameEngine.getCurrentLocationNumber();
+    const totalLocations = gameData.locations.length;
+    const stageIndicator = document.getElementById('location-stage-indicator');
+    const stageText = document.getElementById('stage-text');
+    
+    if (stageIndicator && stageText) {
+        // Smart stage indicators based on progress
+        const progress = currentLocationNumber / totalLocations;
+        let stageLabel = '';
+        
+        if (currentLocationNumber === 1) {
+            stageLabel = '📍 Beginning Your Quest';
+        } else if (currentLocationNumber === Math.floor(totalLocations / 2)) {
+            stageLabel = '⚖️ Halfway Through Your Journey';
+        } else if (currentLocationNumber === totalLocations - 1) {
+            stageLabel = '🏁 Approaching the Final Destination';
+        } else if (currentLocationNumber === totalLocations) {
+            stageLabel = '🎯 Final Stage';
+        } else if (progress < 0.3) {
+            stageLabel = `🌱 Early Stages of Your Adventure`;
+        } else if (progress < 0.7) {
+            stageLabel = `🚶 Making Steady Progress`;
+        } else {
+            stageLabel = `🏃 Nearing the End`;
+        }
+        
+        stageText.textContent = `${stageLabel} • Stage ${currentLocationNumber} of ${totalLocations}`;
+        stageIndicator.style.display = 'block';
     }
 }
 

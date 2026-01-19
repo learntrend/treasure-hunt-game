@@ -532,6 +532,27 @@ body::before {
 
 .action-buttons {
     margin-top: 20px;
+    position: relative;
+    z-index: 10;
+}
+
+/* Location Stage Indicator */
+.location-stage-indicator {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+    border-left: 4px solid var(--accent-color);
+    border-radius: 8px;
+    padding: 12px 20px;
+    margin-bottom: 20px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+}
+
+.location-stage-indicator #stage-text {
+    font-family: 'Cinzel', serif;
+    font-size: 1rem;
+    color: var(--text-dark);
+    font-weight: 600;
+    letter-spacing: 0.5px;
 }
 
 /* Fade In Animation for Next Clue */
@@ -1454,6 +1475,28 @@ input[type="text"].success {
         right: 20px;
         left: 20px;
         max-height: 300px;
+    }
+    
+    /* Add padding to game-content to prevent action buttons from being hidden */
+    .game-content {
+        padding-bottom: 120px; /* Space for locations panel + action buttons */
+    }
+    
+    /* Ensure action buttons are visible */
+    .action-buttons {
+        position: relative;
+        z-index: 10;
+        margin-bottom: 20px;
+    }
+    
+    /* Stage indicator on mobile */
+    .location-stage-indicator {
+        font-size: 0.9rem;
+        padding: 10px 15px;
+    }
+    
+    .location-stage-indicator #stage-text {
+        font-size: 0.9rem;
     }
     
     .feedback-modal-content {

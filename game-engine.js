@@ -145,18 +145,21 @@ class GameEngine {
         const location = this.getCurrentLocation();
         if (!location) return false;
         
-        const normalizedInput = locationName.trim().toLowerCase();
+        // Normalize input: remove wildcards and convert to lowercase
+        const normalizedInput = this.normalizeAnswer(locationName);
         const variations = location.locationNameVariations || [];
         
         // Check against all variations
         for (const variation of variations) {
-            if (normalizedInput === variation.toLowerCase()) {
+            const normalizedVariation = this.normalizeAnswer(variation);
+            if (normalizedInput === normalizedVariation) {
                 return true;
             }
         }
         
         // Also check against the main location name
-        if (normalizedInput === location.locationName.toLowerCase()) {
+        const normalizedLocationName = this.normalizeAnswer(location.locationName);
+        if (normalizedInput === normalizedLocationName) {
             return true;
         }
         
@@ -179,6 +182,13 @@ class GameEngine {
         }
     }
 
+    // Normalize string: remove wildcard characters and convert to lowercase
+    normalizeAnswer(answerText) {
+        // Remove wildcard characters: *, ?, [, ], {, }, ^, $, |, \, /, etc.
+        const wildcardPattern = /[*?\[\]{}^$|\\\/]/g;
+        return answerText.trim().toLowerCase().replace(wildcardPattern, '');
+    }
+
     // Submit answer and update score (text-based)
     submitAnswer(answerText) {
         const location = this.getCurrentLocation();
@@ -188,13 +198,15 @@ class GameEngine {
         
         // Allow multiple attempts - don't check if answer was already submitted
 
-        const normalizedInput = answerText.trim().toLowerCase();
+        // Normalize input: remove wildcards and convert to lowercase
+        const normalizedInput = this.normalizeAnswer(answerText);
         const variations = location.answerVariations || [];
         
         // Check against all variations
         let isCorrect = false;
         for (const variation of variations) {
-            if (normalizedInput === variation.toLowerCase()) {
+            const normalizedVariation = this.normalizeAnswer(variation);
+            if (normalizedInput === normalizedVariation) {
                 isCorrect = true;
                 break;
             }
@@ -202,7 +214,8 @@ class GameEngine {
         
         // Also check against the main correct answer
         if (!isCorrect && location.correctAnswer) {
-            if (normalizedInput === location.correctAnswer.toLowerCase()) {
+            const normalizedCorrectAnswer = this.normalizeAnswer(location.correctAnswer);
+            if (normalizedInput === normalizedCorrectAnswer) {
                 isCorrect = true;
             }
         }
