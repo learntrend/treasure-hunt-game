@@ -808,23 +808,39 @@ async function canAccessGame(bookingId = null, sessionId = null) {
                 return { canAccess: true, gameSession: gameSession };
             }
             
+            // If booking is in the past, allow access immediately
+            if (bookingDateTime < now) {
+                console.log('Booking is in the past, allowing immediate access');
+                return { canAccess: true, gameSession: gameSession };
+            }
+            
             // Allow access 15 minutes before booking time
             const accessStartTime = new Date(bookingDateTime.getTime() - 15 * 60 * 1000);
             
             if (now < accessStartTime) {
                 const timeUntilAccessMinutes = Math.ceil((accessStartTime - now) / (1000 * 60));
-                const timeUntilAccessHours = Math.floor(timeUntilAccessMinutes / 60);
-                const remainingMinutes = timeUntilAccessMinutes % 60;
                 
                 // Format time message nicely
                 let timeMessage;
-                if (timeUntilAccessHours > 0) {
-                    timeMessage = `${timeUntilAccessHours} hour${timeUntilAccessHours > 1 ? 's' : ''} and ${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}`;
+                if (timeUntilAccessMinutes >= 60) {
+                    const hours = Math.floor(timeUntilAccessMinutes / 60);
+                    const minutes = timeUntilAccessMinutes % 60;
+                    if (minutes > 0) {
+                        timeMessage = `${hours} hour${hours > 1 ? 's' : ''} and ${minutes} minute${minutes !== 1 ? 's' : ''}`;
+                    } else {
+                        timeMessage = `${hours} hour${hours > 1 ? 's' : ''}`;
+                    }
                 } else {
                     timeMessage = `${timeUntilAccessMinutes} minute${timeUntilAccessMinutes !== 1 ? 's' : ''}`;
                 }
                 
-                // Format booking time for display
+                // Format booking date and time for display
+                const bookingDateDisplay = bookingDateTime.toLocaleDateString('en-US', { 
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
                 const bookingTimeDisplay = bookingDateTime.toLocaleTimeString('en-US', { 
                     hour: 'numeric', 
                     minute: '2-digit',
@@ -833,7 +849,7 @@ async function canAccessGame(bookingId = null, sessionId = null) {
                 
                 return { 
                     canAccess: false, 
-                    reason: `Your game is scheduled for ${gameSession.bookingDate} at ${bookingTimeDisplay}. The game will be available in ${timeMessage} (15 minutes before your booking time).` 
+                    reason: `Your game is scheduled for ${bookingDateDisplay} at ${bookingTimeDisplay}. The game will be available in ${timeMessage} (15 minutes before your booking time).` 
                 };
             }
         }
