@@ -209,6 +209,25 @@
             border-color: var(--accent-color);
         }
 
+        .form-errors {
+            background: rgba(233, 69, 96, 0.1);
+            border: 2px solid var(--accent-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: var(--accent-color);
+        }
+
+        .form-errors ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .form-errors li {
+            margin: 5px 0;
+            font-weight: 500;
+        }
+
         .datetime-inputs {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -381,6 +400,9 @@
 
             <!-- Submit -->
             <div class="submit-section">
+                <!-- Error Messages Container -->
+                <div id="form-errors" class="form-errors" style="display: none;"></div>
+                
                 <button type="submit" class="btn-primary btn-sparkle" id="submit-booking-btn">
                     📅 Confirm Booking
                 </button>
@@ -666,12 +688,23 @@
             dateInput.setAttribute('min', today);
             
             // Initialize Firebase
-            if (typeof window.DatabaseService !== 'undefined') {
+            // Try to use DatabaseService first, then fallback to local initialization
+            if (typeof window.DatabaseService !== 'undefined' && window.DatabaseService.isInitialized) {
                 window.DatabaseService.initializeFirebase();
-                initializeFirebase();
-            } else {
-                initializeFirebase();
+                // Wait a bit for DatabaseService to initialize, then set local db
+                setTimeout(() => {
+                    if (firebase && firebase.firestore) {
+                        db = firebase.firestore();
+                        isInitialized = true;
+                        // Load time slots if date is already selected
+                        if (dateInput.value) {
+                            loadAvailableTimeSlots(dateInput.value);
+                        }
+                    }
+                }, 100);
             }
+            // Always initialize local Firebase as well
+            initializeFirebase();
 
             // Load available hours when date changes
             dateInput.addEventListener('change', function() {
@@ -705,6 +738,29 @@
             }
         });
 
+        // Show form errors in centralized location
+        function showFormErrors(errors) {
+            const errorContainer = document.getElementById('form-errors');
+            if (!errorContainer) return;
+            
+            if (errors.length === 0) {
+                errorContainer.style.display = 'none';
+                errorContainer.innerHTML = '';
+                return;
+            }
+            
+            errorContainer.style.display = 'block';
+            errorContainer.innerHTML = `
+                <strong style="display: block; margin-bottom: 10px;">⚠️ Please fix the following errors:</strong>
+                <ul>
+                    ${errors.map(error => `<li>${error}</li>`).join('')}
+                </ul>
+            `;
+            
+            // Scroll to error container
+            errorContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
         // Handle form submission
         document.getElementById('booking-form').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -713,6 +769,7 @@
             document.querySelectorAll('.form-group').forEach(group => {
                 group.classList.remove('error');
             });
+            showFormErrors([]);
             
             // Get form data
             const timeHour = document.getElementById('time-hour').value;
@@ -737,53 +794,64 @@
             
             // Validation
             let isValid = true;
+            const errors = [];
             
             if (!formData.email || !formData.email.includes('@')) {
                 showError('email', 'Please enter a valid email address');
+                errors.push('Email address is required');
                 isValid = false;
             }
             
             if (!formData.name || formData.name.length < 2) {
                 showError('name', 'Please enter your full name');
+                errors.push('Full name is required (at least 2 characters)');
                 isValid = false;
             }
             
             if (!formData.phone || formData.phone.length < 5) {
                 showError('phone', 'Please enter a valid contact number');
+                errors.push('Contact number is required');
                 isValid = false;
             }
             
             if (!formData.date) {
                 showError('date', 'Please select a date');
+                errors.push('Please select a date for your booking');
                 isValid = false;
             }
             
             if (!formData.time || !timeHour || !timeMinute) {
                 showError('time', 'Please select both hour and minute');
+                errors.push('Please select both hour and minute for your booking time');
                 isValid = false;
             }
             
             if (!formData.players || parseInt(formData.players) < 1) {
                 showError('players', 'Please enter a valid number of players (minimum 1)');
+                errors.push('Please enter the number of players (minimum 1)');
                 isValid = false;
             }
             
             if (!formData.personalMessage || formData.personalMessage.length < 10) {
                 showError('personal-message', 'Please enter a personal message (at least 10 characters)');
+                errors.push('Personal message is required (at least 10 characters)');
                 isValid = false;
             }
             
             if (!formData.paymentMethod) {
                 showError('payment', 'Please select a payment method');
+                errors.push('Please select a payment method');
                 isValid = false;
             }
             
             if (!formData.referral) {
                 showError('referral', 'Please tell us how you found us');
+                errors.push('Please tell us how you found us');
                 isValid = false;
             }
             
             if (!isValid) {
+                showFormErrors(errors);
                 return;
             }
             
