@@ -457,7 +457,7 @@
                 if (firebase.apps.length === 0) {
                     firebase.initializeApp(firebaseConfig);
                 }
-                db = firebase.firestore();
+                localDb = firebase.firestore();
                 isInitialized = true;
                 return true;
             } catch (error) {
@@ -758,14 +758,14 @@
             
             // Ensure db is set for future database operations
             const ensureDb = () => {
-                if (!db && firebase && firebase.firestore) {
-                    db = firebase.firestore();
+                if (!localDb && firebase && firebase.firestore) {
+                    localDb = firebase.firestore();
                     isInitialized = true;
                     // Reload time slots with database filtering if date is selected
                     if (dateInput.value) {
                         loadAvailableTimeSlots(dateInput.value);
                     }
-                } else if (!db || !isInitialized) {
+                } else if (!localDb || !isInitialized) {
                     // Retry if db not ready yet
                     setTimeout(ensureDb, 100);
                 }
