@@ -1,0 +1,14 @@
+CHARACTER IMAGE PLACEHOLDER
+
+Please replace this file with the actual character image (steampunk man portrait).
+
+Recommended:
+- File name: master-archibald.png (or .jpg)
+- Size: 400x400px minimum (square, circular crop recommended)
+- Format: PNG with transparency or JPG
+
+The image should be a portrait of a steampunk character (man with top hat, goggles, etc.) as described.
+
+Once you add the image file, update the image sources in index.html:
+- Line ~245: character-image src
+- Line ~255: character-popup-image src

@@ -5,6 +5,7 @@ let backgroundMusic;
 let isMusicPlaying = false;
 let currentPlayerType = 'solo'; // Track current player type (solo/group)
 let saveStateInterval = null; // Interval for auto-saving game state
+let waitingForGameplayStart = false; // Flag to track if we're waiting to start gameplay after character message
 
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', async () => {
@@ -104,6 +105,10 @@ function setupEventListeners() {
     document.getElementById('close-feedback-form-btn').addEventListener('click', closeFeedbackModal);
     document.getElementById('close-feedback-after-submit').addEventListener('click', closeFeedbackModal);
     
+    // Character modals
+    document.getElementById('close-character-intro-btn').addEventListener('click', closeCharacterIntro);
+    document.getElementById('close-character-popup-btn').addEventListener('click', closeCharacterPopup);
+    
     // Setup rating buttons
     setupRatingButtons();
 }
@@ -184,30 +189,23 @@ async function startGame() {
     // Update score display to show initial 100 points
     updateScoreDisplay(gameEngine.getScore());
     
-    // Show starting point screen
-    showScreen('starting-point-screen');
-    
-    // Update starting location info
-    document.getElementById('starting-location-name').textContent = gameData.startingLocation.name;
-    document.getElementById('starting-location-address').textContent = gameData.startingLocation.address;
+    // Show character introduction first
+    showCharacterIntroduction(playerName, groupSize);
 }
 
 // Start gameplay when player arrives at starting point
 async function startGameplay() {
-    // Start timer
-    gameEngine.startTimer();
+    // Show welcome message from character
+    const welcomeMessages = [
+        `Excellent! You've arrived at the starting point. Your journey through time begins now, ${gameEngine.playerName}!`,
+        `Splendid! The adventure commences. Let's see what mysteries await you, ${gameEngine.playerName}!`,
+        `Wonderful! You're ready to begin. The lost letter from 1800 awaits discovery, ${gameEngine.playerName}!`
+    ];
+    const randomWelcome = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
     
-    // Move to first location
-    gameEngine.nextLocation();
-    
-    // Save initial game state
-    await saveGameState();
-    
-    // Show game screen
-    showScreen('game-screen');
-    
-    // Load first location with page turn animation
-    loadCurrentLocation();
+    // Set flag to continue after popup closes
+    waitingForGameplayStart = true;
+    showCharacterPopup(randomWelcome, null, false, true);
 }
 
 // Load current location data
@@ -285,37 +283,51 @@ function handleSubmitLocationName() {
         locationNameInput.classList.add('success');
         if (errorContainer) errorContainer.remove();
         
-        // Hide and disable map hint button since location is now confirmed
-        const mapHintBtn = document.getElementById('map-hint-btn');
-        if (mapHintBtn) {
-            mapHintBtn.disabled = true;
-            mapHintBtn.style.display = 'none';
-        }
-        
-        // Also hide the hint-buttons container in clue section
-        const clueHintButtons = document.querySelector('#clue-section .hint-buttons');
-        if (clueHintButtons) {
-            clueHintButtons.style.display = 'none';
-        }
-        
-        // Hide location name input
-        document.getElementById('location-name-input-container').style.display = 'none';
-        
-        // Show location confirmation with scroll animation
+        // Show motivational message from character
         const location = gameEngine.getCurrentLocation();
-        document.getElementById('location-name').textContent = location.locationName || location.name;
-        document.getElementById('location-description').textContent = location.description;
-        const locationInfoSection = document.getElementById('location-info-section');
-        locationInfoSection.style.display = 'block';
-        locationInfoSection.classList.add('scroll-reveal');
+        const locationMessages = [
+            `Excellent work! You've found ${location.locationName || location.name}. Well done!`,
+            `Splendid! ${location.locationName || location.name} is indeed the correct location.`,
+            `Bravo! You've correctly identified ${location.locationName || location.name}.`
+        ];
+        const randomMessage = locationMessages[Math.floor(Math.random() * locationMessages.length)];
         
-        // Save game state after correct location name
-        saveGameState();
+        // Store callback to continue after popup closes
+        const continueAfterPopup = () => {
+            // Hide and disable map hint button since location is now confirmed
+            const mapHintBtn = document.getElementById('map-hint-btn');
+            if (mapHintBtn) {
+                mapHintBtn.disabled = true;
+                mapHintBtn.style.display = 'none';
+            }
+            
+            // Also hide the hint-buttons container in clue section
+            const clueHintButtons = document.querySelector('#clue-section .hint-buttons');
+            if (clueHintButtons) {
+                clueHintButtons.style.display = 'none';
+            }
+            
+            // Hide location name input
+            document.getElementById('location-name-input-container').style.display = 'none';
+            
+            // Show location confirmation with scroll animation
+            document.getElementById('location-name').textContent = location.locationName || location.name;
+            document.getElementById('location-description').textContent = location.description;
+            const locationInfoSection = document.getElementById('location-info-section');
+            locationInfoSection.style.display = 'block';
+            locationInfoSection.classList.add('scroll-reveal');
+            
+            // Save game state after correct location name
+            saveGameState();
+            
+            // Show question section after a short delay with scroll animation
+            setTimeout(() => {
+                showQuestionSection();
+            }, 1500);
+        };
         
-        // Show question section after a short delay with scroll animation
-        setTimeout(() => {
-            showQuestionSection();
-        }, 1500);
+        // Show character popup with callback
+        showCharacterPopupWithCallback(randomMessage, null, false, true, continueAfterPopup);
     } else {
         showInputError(locationNameInput, 'Incorrect location. Try again!');
     }
@@ -370,6 +382,11 @@ function submitAnswer() {
             if (errorContainer) errorContainer.remove();
             showMessage('Correct! +' + result.points + ' points', 'success');
             
+            // Show motivational message from character
+            const locationNumber = gameEngine.getCurrentLocationNumber();
+            const totalLocations = gameData.locations.length;
+            const motivationalMessages = getMotivationalMessage(locationNumber, totalLocations);
+            
             // Update locations panel
             updateLocationsPanel();
             
@@ -378,18 +395,23 @@ function submitAnswer() {
             
             // Check if game is complete
             if (gameEngine.isGameComplete()) {
+                // Show final motivational message, then final screen
                 setTimeout(() => {
-                    showFinalScreen();
-                }, 2000);
+                    showCharacterPopupWithCallback(motivationalMessages.message, null, false, true, () => {
+                        showFinalScreen();
+                    });
+                }, 1000);
             } else {
-                // Move to next location after delay with fade-in animation
-                setTimeout(async () => {
-                    gameEngine.nextLocation();
-                    loadCurrentLocation();
-                    showMessage('', ''); // Clear message
-                    // Save state after moving to next location
-                    await saveGameState();
-                }, 2000);
+                // Show motivational message, then move to next location
+                setTimeout(() => {
+                    showCharacterPopupWithCallback(motivationalMessages.message, null, false, true, async () => {
+                        gameEngine.nextLocation();
+                        loadCurrentLocation();
+                        showMessage('', ''); // Clear message
+                        // Save state after moving to next location
+                        await saveGameState();
+                    });
+                }, 1000);
             }
         } else {
             showInputError(answerInput, 'Incorrect answer. Try again!');
@@ -422,7 +444,15 @@ function showInputError(inputElement, message) {
 async function showTextHint() {
     const hint = gameEngine.useTextHint();
     if (hint) {
-        showHintModal('Text Hint', hint, false);
+        // Show character popup with hint
+        const hintMessages = [
+            "Ah, seeking guidance, are we? Very well, let me illuminate your path...",
+            "A wise choice to seek assistance! Here's what I can tell you...",
+            "Excellent! Asking for help shows wisdom. Allow me to share this insight...",
+            "I see you need a nudge in the right direction. Here's what you should know..."
+        ];
+        const randomMessage = hintMessages[Math.floor(Math.random() * hintMessages.length)];
+        showCharacterPopup(randomMessage, hint, false, false);
         updateScoreDisplay(gameEngine.getScore());
         resetHintButtons();
         // Save state after using hint
@@ -434,7 +464,15 @@ async function showTextHint() {
 async function showMapHint() {
     const hintData = gameEngine.useMapHint();
     if (hintData) {
-        showHintModal('Map Hint', hintData.text, true);
+        // Show character popup with map hint
+        const hintMessages = [
+            "Ah, you seek the path forward! Let me show you the way...",
+            "A map to guide your journey! Here's where you must go...",
+            "Excellent! Sometimes a visual guide is what's needed. Behold...",
+            "The way becomes clearer with a map. Here's your route..."
+        ];
+        const randomMessage = hintMessages[Math.floor(Math.random() * hintMessages.length)];
+        showCharacterPopup(randomMessage, hintData.text, true, false);
         updateScoreDisplay(gameEngine.getScore());
         resetHintButtons();
         // Save state after using hint
@@ -1226,4 +1264,142 @@ function formatTimeForResume(seconds) {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+// Character System Functions
+
+// Show character introduction
+function showCharacterIntroduction(playerName, groupSize) {
+    const characterIntroText = document.getElementById('character-intro-text');
+    const greeting = groupSize === 'group' ? `Greetings, ${playerName}!` : `Greetings, ${playerName}!`;
+    
+    characterIntroText.innerHTML = `
+        ${greeting} I am <strong>Master Archibald</strong>, the keeper of this temporal treasure hunt and master of this game.<br><br>
+        Through my time-traveling mechanisms and steampunk contraptions, I have crafted this journey across the centuries for you.<br><br>
+        Your quest: Follow the clues, solve the puzzles, and discover the lost letter from 1800. I shall be your guide, appearing when you need assistance or when you achieve great feats.<br><br>
+        <em>Remember: You start with 100 bonus points. Each correct answer earns you 100 points. Hints cost points, but wisdom often comes at a price!</em><br><br>
+        Are you ready to begin this adventure through time?
+    `;
+    
+    document.getElementById('character-intro-modal').classList.add('active');
+}
+
+// Close character introduction
+function closeCharacterIntro() {
+    document.getElementById('character-intro-modal').classList.remove('active');
+    
+    // Show starting point screen after introduction
+    showScreen('starting-point-screen');
+    
+    // Update starting location info
+    document.getElementById('starting-location-name').textContent = gameData.startingLocation.name;
+    document.getElementById('starting-location-address').textContent = gameData.startingLocation.address;
+}
+
+// Show character popup (for hints and messages)
+function showCharacterPopup(message, hintText, isMapHint, isMotivational) {
+    showCharacterPopupWithCallback(message, hintText, isMapHint, isMotivational, null);
+}
+
+// Show character popup with callback (for when we need to continue after popup closes)
+let characterPopupCallback = null;
+
+function showCharacterPopupWithCallback(message, hintText, isMapHint, isMotivational, callback) {
+    const popupText = document.getElementById('character-popup-text');
+    const hintContent = document.getElementById('character-hint-content');
+    const hintTextElement = document.getElementById('character-hint-text');
+    const mapHintContainer = document.getElementById('character-map-hint-container');
+    
+    popupText.textContent = message;
+    
+    if (hintText) {
+        hintContent.style.display = 'block';
+        hintTextElement.textContent = hintText;
+        
+        if (isMapHint) {
+            mapHintContainer.style.display = 'block';
+        } else {
+            mapHintContainer.style.display = 'none';
+        }
+    } else {
+        hintContent.style.display = 'none';
+    }
+    
+    // Store callback
+    characterPopupCallback = callback;
+    
+    document.getElementById('character-popup-modal').classList.add('active');
+}
+
+// Close character popup
+async function closeCharacterPopup() {
+    document.getElementById('character-popup-modal').classList.remove('active');
+    
+    // Execute callback if provided
+    if (characterPopupCallback) {
+        const callback = characterPopupCallback;
+        characterPopupCallback = null;
+        callback();
+    }
+    
+    // If we were waiting to start gameplay, continue now
+    if (waitingForGameplayStart) {
+        waitingForGameplayStart = false;
+        
+        // Start timer
+        gameEngine.startTimer();
+        
+        // Move to first location
+        gameEngine.nextLocation();
+        
+        // Save initial game state
+        await saveGameState();
+        
+        // Show game screen
+        showScreen('game-screen');
+        
+        // Load first location with page turn animation
+        loadCurrentLocation();
+    }
+}
+
+// Get motivational message based on progress
+function getMotivationalMessage(currentLocation, totalLocations) {
+    const progress = currentLocation / totalLocations;
+    const playerName = gameEngine.playerName;
+    
+    let message = '';
+    
+    if (currentLocation === 1) {
+        message = `Excellent work, ${playerName}! You've found your first location. The journey has truly begun!`;
+    } else if (currentLocation === Math.floor(totalLocations / 2)) {
+        message = `Magnificent progress, ${playerName}! You're halfway through your quest. The letter from 1800 draws nearer!`;
+    } else if (currentLocation === totalLocations - 1) {
+        message = `Outstanding, ${playerName}! You're on the final stretch. The lost letter awaits at your next destination!`;
+    } else if (currentLocation === totalLocations) {
+        message = `Congratulations, ${playerName}! You've completed the entire journey! The letter from 1800 is yours to discover!`;
+    } else if (progress < 0.3) {
+        const messages = [
+            `Well done, ${playerName}! You're making excellent progress. Keep up the momentum!`,
+            `Splendid work, ${playerName}! Each location brings you closer to the mystery.`,
+            `Bravo, ${playerName}! Your determination is admirable. Continue forward!`
+        ];
+        message = messages[Math.floor(Math.random() * messages.length)];
+    } else if (progress < 0.7) {
+        const messages = [
+            `Impressive, ${playerName}! You're navigating this temporal puzzle with great skill!`,
+            `Excellent progress, ${playerName}! The pieces of the puzzle are coming together.`,
+            `Outstanding work, ${playerName}! You're proving yourself a worthy time traveler!`
+        ];
+        message = messages[Math.floor(Math.random() * messages.length)];
+    } else {
+        const messages = [
+            `Remarkable, ${playerName}! You're so close to uncovering the secret!`,
+            `Extraordinary work, ${playerName}! The final revelation approaches!`,
+            `Brilliant, ${playerName}! Your journey through time is nearly complete!`
+        ];
+        message = messages[Math.floor(Math.random() * messages.length)];
+    }
+    
+    return { message };
 }

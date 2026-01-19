@@ -779,6 +779,114 @@ body::before {
     color: #666;
 }
 
+/* Character Modal Styles */
+.character-modal {
+    z-index: 2000;
+}
+
+.character-modal-content {
+    max-width: 600px;
+    text-align: center;
+    padding: 40px;
+    background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+    border: 3px solid var(--gold-color);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+}
+
+.character-portrait {
+    margin-bottom: 25px;
+    animation: characterAppear 0.6s ease-out;
+}
+
+.character-portrait img {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    border: 5px solid var(--gold-color);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    object-fit: cover;
+    background: linear-gradient(135deg, #d4a574 0%, #c8965a 100%);
+}
+
+.character-portrait-small {
+    margin-bottom: 15px;
+    animation: characterAppear 0.4s ease-out;
+}
+
+.character-portrait-small img {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 3px solid var(--gold-color);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    object-fit: cover;
+    background: linear-gradient(135deg, #d4a574 0%, #c8965a 100%);
+}
+
+@keyframes characterAppear {
+    from {
+        opacity: 0;
+        transform: scale(0.8) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.character-dialogue {
+    margin-bottom: 25px;
+}
+
+.character-dialogue h3 {
+    font-family: 'Cinzel', serif;
+    font-size: 1.8rem;
+    color: var(--primary-color);
+    margin-bottom: 15px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.character-dialogue p {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: var(--text-dark);
+    font-style: italic;
+}
+
+.character-popup-content {
+    max-width: 500px;
+    text-align: center;
+    padding: 30px;
+    background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+    border: 3px solid var(--gold-color);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+}
+
+.character-dialogue-popup {
+    margin-bottom: 20px;
+}
+
+.character-dialogue-popup h4 {
+    font-family: 'Cinzel', serif;
+    font-size: 1.4rem;
+    color: var(--primary-color);
+    margin-bottom: 12px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.character-dialogue-popup p {
+    font-size: 1rem;
+    line-height: 1.7;
+    color: var(--text-dark);
+    font-style: italic;
+}
+
+.hint-divider {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold-color), transparent);
+    margin: 15px 0;
+}
+
 /* Feedback Modal */
 .feedback-modal-content {
     max-width: 600px;

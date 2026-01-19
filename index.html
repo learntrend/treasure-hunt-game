@@ -239,8 +239,45 @@
         </div>
     </div>
 
+    <!-- Character Introduction Modal -->
+    <div id="character-intro-modal" class="modal character-modal">
+        <div class="modal-content character-modal-content">
+            <div class="character-portrait">
+                <img id="character-image" src="images/master-archibald.png" alt="Master Archibald" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 200 200\'%3E%3Ccircle cx=\'100\' cy=\'100\' r=\'100\' fill=\'%23d4a574\'/%3E%3Ctext x=\'100\' y=\'120\' font-size=\'60\' text-anchor=\'middle\' fill=\'%23333\'%3E👨%3C/text%3E%3C/svg%3E';">
+            </div>
+            <div class="character-dialogue">
+                <h3 id="character-name">Master Archibald</h3>
+                <p id="character-intro-text">Greetings, time traveler! I am Master Archibald, the keeper of this temporal treasure hunt. I shall guide you through this journey across the centuries...</p>
+            </div>
+            <button id="close-character-intro-btn" class="btn-primary btn-sparkle">Begin the Adventure</button>
+        </div>
+    </div>
+
+    <!-- Character Popup Modal (for hints and messages) -->
+    <div id="character-popup-modal" class="modal character-modal">
+        <div class="modal-content character-popup-content">
+            <div class="character-portrait-small">
+                <img id="character-popup-image" src="images/master-archibald.png" alt="Master Archibald" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 200 200\'%3E%3Ccircle cx=\'100\' cy=\'100\' r=\'100\' fill=\'%23d4a574\'/%3E%3Ctext x=\'100\' y=\'120\' font-size=\'60\' text-anchor=\'middle\' fill=\'%23333\'%3E👨%3C/text%3E%3C/svg%3E';">
+            </div>
+            <div class="character-dialogue-popup">
+                <h4 id="character-popup-name">Master Archibald</h4>
+                <p id="character-popup-text">Loading message...</p>
+                <div id="character-hint-content" style="display: none;">
+                    <div class="hint-divider"></div>
+                    <p id="character-hint-text" style="margin-top: 15px; font-weight: 600; color: var(--accent-color);"></p>
+                    <div id="character-map-hint-container" style="display: none; margin-top: 15px;">
+                        <div class="map-placeholder">
+                            <img src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=400&h=300&fit=crop" alt="Map" onerror="this.style.display='none';">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button id="close-character-popup-btn" class="btn-primary">Continue</button>
+        </div>
+    </div>
+
     <!-- Hint Modal -->
-    <div id="hint-modal" class="modal">
+    <div id="hint-modal" class="modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="hint-modal-title">Hint</h3>
