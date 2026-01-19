@@ -514,13 +514,13 @@
             
             // Always show hours initially, even if database not ready
             // Database check will filter out taken slots if available
-            // Get db reference if not set
-            if (!db && firebase && firebase.firestore) {
-                db = firebase.firestore();
+            // Get db reference if not set (use localDb to avoid conflict)
+            if (!localDb && firebase && firebase.firestore) {
+                localDb = firebase.firestore();
                 isInitialized = true;
             }
             
-            if (!db || !isInitialized) {
+            if (!localDb || !isInitialized) {
                 console.log('Database not ready, showing all hours');
                 if (hourSelect) {
                     hourSelect.innerHTML = '<option value="">Hour</option>';
@@ -534,11 +534,11 @@
                 }
                 // Try to reload with database filtering once db is ready
                 setTimeout(() => {
-                    if (firebase && firebase.firestore && !db) {
-                        db = firebase.firestore();
+                    if (firebase && firebase.firestore && !localDb) {
+                        localDb = firebase.firestore();
                         isInitialized = true;
                     }
-                    if (db && isInitialized) {
+                    if (localDb && isInitialized) {
                         loadAvailableTimeSlots(selectedDate);
                     }
                 }, 100);
@@ -546,8 +546,24 @@
             }
 
             try {
+                // Get db reference (use localDb to avoid conflict with database.js)
+                const dbRef = localDb || (firebase && firebase.firestore ? firebase.firestore() : null);
+                if (!dbRef) {
+                    // Fallback: show all hours if db not available
+                    if (hourSelect) {
+                        hourSelect.innerHTML = '<option value="">Hour</option>';
+                        availableHours.forEach(hour => {
+                            const option = document.createElement('option');
+                            option.value = hour;
+                            option.textContent = hour;
+                            hourSelect.appendChild(option);
+                        });
+                    }
+                    return;
+                }
+                
                 // Get all bookings for the selected date
-                const snapshot = await db.collection('bookings')
+                const snapshot = await dbRef.collection('bookings')
                     .where('date', '==', selectedDate)
                     .where('status', 'in', ['pending', 'confirmed'])
                     .get();
@@ -640,9 +656,10 @@
             
             // Get taken slots from database
             let takenSlots = new Set();
-            if (db && isInitialized) {
+            const dbRef = localDb || (firebase && firebase.firestore ? firebase.firestore() : null);
+            if (dbRef && isInitialized) {
                 try {
-                    const snapshot = await db.collection('bookings')
+                    const snapshot = await dbRef.collection('bookings')
                         .where('date', '==', selectedDate)
                         .where('status', 'in', ['pending', 'confirmed'])
                         .get();
@@ -992,14 +1009,20 @@
             
             try {
                 // Save to Firebase
-                if (!db || !isInitialized) {
+                // Get db reference (use localDb to avoid conflict with database.js)
+                if (!localDb || !isInitialized) {
                     if (!initializeFirebase()) {
                         throw new Error('Database not available');
                     }
                 }
                 
+                const dbRef = localDb || (firebase && firebase.firestore ? firebase.firestore() : null);
+                if (!dbRef) {
+                    throw new Error('Database not available');
+                }
+                
                 // Add booking to Firestore and get the document reference
-                const bookingRef = await db.collection('bookings').add(formData);
+                const bookingRef = await dbRef.collection('bookings').add(formData);
                 const bookingId = bookingRef.id;
                 
                 // Create game session linked to this booking
@@ -1009,7 +1032,7 @@
                         if (sessionId) {
                             console.log('Game session created:', sessionId);
                             // Store game link in booking document for easy access
-                            await db.collection('bookings').doc(bookingId).update({
+                            await dbRef.collection('bookings').doc(bookingId).update({
                                 gameSessionId: sessionId,
                                 gameLink: `${window.location.origin}${window.location.pathname.replace('booking.html', 'index.html')}?bookingId=${bookingId}`,
                                 updatedAt: firebase.firestore.Timestamp.now()
