@@ -312,6 +312,7 @@
     
     <!-- Firebase Configuration -->
     <script src="firebase-config.js"></script>
+    <script src="database.js"></script>
     
     <script>
         let db = null;
@@ -996,7 +997,8 @@
                             </span>
                         </td>
                         <td>
-                            <button onclick="editBooking('${booking.id}')" style="padding: 5px 10px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.85rem;">Edit</button>
+                            <button onclick="editBooking('${booking.id}')" style="padding: 5px 10px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.85rem; margin-right: 5px;">Edit</button>
+                            <button onclick="generateGameLink('${booking.id}')" style="padding: 5px 10px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.85rem;" title="Generate/Copy Game Link">🔗 Link</button>
                         </td>
                     </tr>
                 `;
@@ -1112,6 +1114,65 @@
             } catch (error) {
                 console.error('Error updating booking:', error);
                 alert('Error updating booking: ' + error.message);
+            }
+        }
+
+        // Generate/Copy game link for a booking
+        async function generateGameLink(bookingId) {
+            if (!db) {
+                alert('Database not available');
+                return;
+            }
+
+            try {
+                // Get booking data
+                const bookingDoc = await db.collection('bookings').doc(bookingId).get();
+                if (!bookingDoc.exists) {
+                    alert('Booking not found');
+                    return;
+                }
+
+                const booking = bookingDoc.data();
+                
+                // Check if game session exists, create if not
+                let gameSessionId = booking.gameSessionId;
+                
+                if (!gameSessionId && window.DatabaseService && window.DatabaseService.isInitialized()) {
+                    // Create game session
+                    gameSessionId = await window.DatabaseService.createGameSessionFromBooking(bookingId, booking);
+                    
+                    if (gameSessionId) {
+                        // Update booking with game session info
+                        await db.collection('bookings').doc(bookingId).update({
+                            gameSessionId: gameSessionId,
+                            updatedAt: firebase.firestore.Timestamp.now()
+                        });
+                    }
+                }
+
+                // Generate game link
+                const baseUrl = window.location.origin + window.location.pathname.replace('admin-dashboard.html', 'index.html');
+                const gameLink = `${baseUrl}?bookingId=${bookingId}`;
+
+                // Copy to clipboard
+                try {
+                    await navigator.clipboard.writeText(gameLink);
+                    alert(`Game link copied to clipboard!\n\n${gameLink}\n\nShare this link with the player. The game will be available 15 minutes before their booking time.`);
+                } catch (err) {
+                    // Fallback: show in prompt
+                    prompt('Copy this game link:', gameLink);
+                }
+
+                // Update booking with game link if not already set
+                if (!booking.gameLink) {
+                    await db.collection('bookings').doc(bookingId).update({
+                        gameLink: gameLink,
+                        updatedAt: firebase.firestore.Timestamp.now()
+                    });
+                }
+            } catch (error) {
+                console.error('Error generating game link:', error);
+                alert('Error generating game link: ' + error.message);
             }
         }
 

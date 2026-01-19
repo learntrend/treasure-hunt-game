@@ -400,6 +400,7 @@
             <p>Thank you for booking your adventure!</p>
             <p>We've sent a confirmation email to <strong id="confirmation-email"></strong></p>
             <p>You'll receive payment instructions shortly.</p>
+            <div id="game-link" style="margin-top: 20px;"></div>
             <p style="margin-top: 30px;">
                 <a href="index.html" class="btn-primary btn-sparkle" style="text-decoration: none; display: inline-block;">
                     Return to Game
@@ -798,12 +799,48 @@
                     }
                 }
                 
-                await db.collection('bookings').add(formData);
+                // Add booking to Firestore and get the document reference
+                const bookingRef = await db.collection('bookings').add(formData);
+                const bookingId = bookingRef.id;
                 
-                // Show success message
+                // Create game session linked to this booking
+                if (window.DatabaseService && window.DatabaseService.isInitialized()) {
+                    try {
+                        const sessionId = await window.DatabaseService.createGameSessionFromBooking(bookingId, formData);
+                        if (sessionId) {
+                            console.log('Game session created:', sessionId);
+                            // Store game link in booking document for easy access
+                            await db.collection('bookings').doc(bookingId).update({
+                                gameSessionId: sessionId,
+                                gameLink: `${window.location.origin}${window.location.pathname.replace('booking.html', 'index.html')}?bookingId=${bookingId}`,
+                                updatedAt: firebase.firestore.Timestamp.now()
+                            });
+                        }
+                    } catch (gameError) {
+                        console.error('Error creating game session:', gameError);
+                        // Don't fail the booking if game session creation fails
+                    }
+                }
+                
+                // Show success message with game link
                 document.getElementById('booking-form').style.display = 'none';
                 document.getElementById('booking-success').classList.add('show');
                 document.getElementById('confirmation-email').textContent = formData.email;
+                
+                // Display game link if available
+                const gameLinkElement = document.getElementById('game-link');
+                if (gameLinkElement) {
+                    const gameLink = `${window.location.origin}${window.location.pathname.replace('booking.html', 'index.html')}?bookingId=${bookingId}`;
+                    gameLinkElement.innerHTML = `
+                        <p style="margin-top: 15px; padding: 15px; background: rgba(102, 126, 234, 0.1); border-radius: 8px; border-left: 4px solid #667eea;">
+                            <strong>🎮 Your Game Link:</strong><br>
+                            <a href="${gameLink}" target="_blank" style="color: #667eea; word-break: break-all;">${gameLink}</a><br>
+                            <small style="color: #666; margin-top: 5px; display: block;">
+                                Save this link! You'll need it to play the game. The game will be available 15 minutes before your booking time.
+                            </small>
+                        </p>
+                    `;
+                }
                 
             } catch (error) {
                 console.error('Error saving booking:', error);
