@@ -303,7 +303,18 @@ async function loadGameState() {
         const docSnap = await sessionRef.get();
 
         // Check if document exists (handle both Firestore v8 and v9+ syntax)
-        const exists = docSnap.exists ? docSnap.exists() : (docSnap.exists !== false && docSnap.data() !== undefined);
+        let exists = false;
+        if (typeof docSnap.exists === 'function') {
+            // Firestore v8: exists is a function
+            exists = docSnap.exists();
+        } else if (typeof docSnap.exists === 'boolean') {
+            // Firestore v9+: exists is a boolean property
+            exists = docSnap.exists;
+        } else {
+            // Fallback: check if data exists
+            const data = docSnap.data();
+            exists = data !== undefined && data !== null;
+        }
         
         if (exists) {
             const data = docSnap.data();
