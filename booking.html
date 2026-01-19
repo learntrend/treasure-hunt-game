@@ -440,8 +440,13 @@
     <script src="database.js"></script>
     
     <script>
+        // Use db from database.js if available, otherwise declare local
         let db = null;
         let isInitialized = false;
+        
+        // Check if db is already declared (from database.js)
+        // If database.js loaded first, we need to use its db reference
+        // We'll get it from firebase.firestore() directly when needed
 
         // Initialize Firebase
         function initializeFirebase() {
@@ -509,6 +514,12 @@
             
             // Always show hours initially, even if database not ready
             // Database check will filter out taken slots if available
+            // Get db reference if not set
+            if (!db && firebase && firebase.firestore) {
+                db = firebase.firestore();
+                isInitialized = true;
+            }
+            
             if (!db || !isInitialized) {
                 console.log('Database not ready, showing all hours');
                 if (hourSelect) {
@@ -522,12 +533,15 @@
                     hourSelect.disabled = false;
                 }
                 // Try to reload with database filtering once db is ready
-                if (!db && firebase && firebase.firestore) {
-                    db = firebase.firestore();
-                    isInitialized = true;
-                    // Reload with database check
-                    setTimeout(() => loadAvailableTimeSlots(selectedDate), 100);
-                }
+                setTimeout(() => {
+                    if (firebase && firebase.firestore && !db) {
+                        db = firebase.firestore();
+                        isInitialized = true;
+                    }
+                    if (db && isInitialized) {
+                        loadAvailableTimeSlots(selectedDate);
+                    }
+                }, 100);
                 return;
             }
 
