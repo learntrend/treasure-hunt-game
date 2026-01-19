@@ -1147,6 +1147,74 @@
         }
         })(); // End IIFE
         
+        // Function to send game link email to recipient (outside IIFE)
+        async function sendGameLinkEmail(recipientEmail, gameLink, formData) {
+            try {
+                // Simple email sending using EmailJS
+                // You'll need to set up EmailJS account and configure:
+                // 1. Create an EmailJS account at https://www.emailjs.com
+                // 2. Add your email service (Gmail, Outlook, etc.) - use meghana.shettigar@gmail.com
+                // 3. Create an email template
+                // 4. Get your service ID, template ID, and public key
+                // 5. Replace the placeholders below
+                
+                const serviceId = 'YOUR_EMAILJS_SERVICE_ID'; // Replace with your EmailJS service ID
+                const templateId = 'YOUR_EMAILJS_TEMPLATE_ID'; // Replace with your EmailJS template ID
+                const publicKey = 'YOUR_EMAILJS_PUBLIC_KEY'; // Replace with your EmailJS public key
+                
+                // Initialize EmailJS
+                if (typeof emailjs !== 'undefined' && serviceId !== 'YOUR_EMAILJS_SERVICE_ID') {
+                    emailjs.init(publicKey);
+                    
+                    // Build email content
+                    let emailBody = `Hi there!\n\nYou've been invited to play a treasure hunt game!\n\nClick this link to start playing: ${gameLink}\n\nThe game will be available 15 minutes before your scheduled time (${formData.date} at ${formData.time}).\n\nHave fun and enjoy the adventure!\n\nBest regards,\n${formData.name || 'Treasure Hunt Team'}`;
+                    
+                    // Add personal message if provided
+                    if (formData.personalMessage) {
+                        const fromName = formData.messageFrom || formData.name || 'Someone special';
+                        emailBody += `\n\n---\n\nA special message from ${fromName}:\n\n${formData.personalMessage}`;
+                    }
+                    
+                    const templateParams = {
+                        to_email: recipientEmail,
+                        from_email: 'meghana.shettigar@gmail.com',
+                        from_name: formData.name || 'Treasure Hunt Team',
+                        subject: 'Your Treasure Hunt Game Link',
+                        message: emailBody,
+                        game_link: gameLink,
+                        recipient_name: recipientEmail.split('@')[0],
+                        booking_date: formData.date,
+                        booking_time: formData.time
+                    };
+                    
+                    await emailjs.send(serviceId, templateId, templateParams);
+                    console.log('Email sent successfully via EmailJS');
+                } else {
+                    // Fallback: Log email details (for development/testing)
+                    let emailBody = `Hi there!\n\nYou've been invited to play a treasure hunt game!\n\nClick this link to start playing: ${gameLink}\n\nThe game will be available 15 minutes before your scheduled time (${formData.date} at ${formData.time}).\n\nHave fun and enjoy the adventure!\n\nBest regards,\n${formData.name || 'Treasure Hunt Team'}`;
+                    
+                    if (formData.personalMessage) {
+                        const fromName = formData.messageFrom || formData.name || 'Someone special';
+                        emailBody += `\n\n---\n\nA special message from ${fromName}:\n\n${formData.personalMessage}`;
+                    }
+                    
+                    console.log('Email service not configured. Email would be sent:');
+                    console.log('To:', recipientEmail);
+                    console.log('From: meghana.shettigar@gmail.com');
+                    console.log('Subject: Your Treasure Hunt Game Link');
+                    console.log('Game Link:', gameLink);
+                    console.log('Message:', emailBody);
+                    
+                    // For production, you'll need to configure EmailJS or use a backend service
+                    console.warn('Email service not configured. Please set up EmailJS or use a backend email service.');
+                }
+            } catch (error) {
+                console.error('Error sending email:', error);
+                // Don't throw - allow booking to complete even if email fails
+                console.warn('Email sending failed, but booking was successful');
+            }
+        }
+        
         // Make selectPayment globally accessible (outside IIFE scope)
         window.selectPayment = function(method) {
             document.querySelectorAll('.payment-option').forEach(opt => {
