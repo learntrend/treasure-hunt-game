@@ -846,66 +846,112 @@
                 status: 'pending'
             };
             
-            // Validation
+            // Validation with field highlighting and scrolling
             let isValid = true;
             const errors = [];
+            let firstErrorField = null;
+            
+            // Helper to highlight field in red and track first error
+            function markFieldError(fieldId, errorMessage) {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    field.style.borderColor = '#e94560';
+                    field.style.borderWidth = '2px';
+                    field.style.backgroundColor = 'rgba(233, 69, 96, 0.05)';
+                    if (!firstErrorField) {
+                        firstErrorField = field;
+                    }
+                }
+                showError(fieldId, errorMessage);
+            }
             
             if (!formData.email || !formData.email.includes('@')) {
-                showError('email', 'Please enter a valid email address');
+                markFieldError('email', 'Please enter a valid email address');
                 errors.push('Email address is required');
                 isValid = false;
             }
             
             if (!formData.name || formData.name.length < 2) {
-                showError('name', 'Please enter your full name');
+                markFieldError('name', 'Please enter your full name');
                 errors.push('Full name is required (at least 2 characters)');
                 isValid = false;
             }
             
             if (!formData.phone || formData.phone.length < 5) {
-                showError('phone', 'Please enter a valid contact number');
+                markFieldError('phone', 'Please enter a valid contact number');
                 errors.push('Contact number is required');
                 isValid = false;
             }
             
             if (!formData.date) {
-                showError('date', 'Please select a date');
+                markFieldError('date', 'Please select a date');
                 errors.push('Please select a date for your booking');
                 isValid = false;
             }
             
             if (!formData.time || !timeHour || !timeMinute) {
+                // Highlight both hour and minute fields
+                const hourField = document.getElementById('time-hour');
+                const minuteField = document.getElementById('time-minute');
+                if (hourField) {
+                    hourField.style.borderColor = '#e94560';
+                    hourField.style.borderWidth = '2px';
+                    hourField.style.backgroundColor = 'rgba(233, 69, 96, 0.05)';
+                    if (!firstErrorField) firstErrorField = hourField;
+                }
+                if (minuteField) {
+                    minuteField.style.borderColor = '#e94560';
+                    minuteField.style.borderWidth = '2px';
+                    minuteField.style.backgroundColor = 'rgba(233, 69, 96, 0.05)';
+                    if (!firstErrorField) firstErrorField = minuteField;
+                }
                 showError('time', 'Please select both hour and minute');
                 errors.push('Please select both hour and minute for your booking time');
                 isValid = false;
             }
             
             if (!formData.players || parseInt(formData.players) < 1) {
-                showError('players', 'Please enter a valid number of players (minimum 1)');
+                markFieldError('players', 'Please enter a valid number of players (minimum 1)');
                 errors.push('Please enter the number of players (minimum 1)');
                 isValid = false;
             }
             
             if (!formData.personalMessage || formData.personalMessage.length < 10) {
-                showError('personal-message', 'Please enter a personal message (at least 10 characters)');
+                markFieldError('personal-message', 'Please enter a personal message (at least 10 characters)');
                 errors.push('Personal message is required (at least 10 characters)');
                 isValid = false;
             }
             
             if (!formData.paymentMethod) {
-                showError('payment', 'Please select a payment method');
+                // Highlight payment options
+                const paymentOptions = document.querySelectorAll('.payment-option');
+                paymentOptions.forEach(opt => {
+                    opt.style.borderColor = '#e94560';
+                    opt.style.borderWidth = '2px';
+                    opt.style.backgroundColor = 'rgba(233, 69, 96, 0.05)';
+                    if (!firstErrorField) firstErrorField = opt;
+                });
                 errors.push('Please select a payment method');
                 isValid = false;
             }
             
             if (!formData.referral) {
-                showError('referral', 'Please tell us how you found us');
+                markFieldError('referral', 'Please tell us how you found us');
                 errors.push('Please tell us how you found us');
                 isValid = false;
             }
             
             if (!isValid) {
                 showFormErrors(errors);
+                
+                // Scroll to first error field
+                if (firstErrorField) {
+                    firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // Focus the field if it's an input
+                    if (firstErrorField.tagName === 'INPUT' || firstErrorField.tagName === 'SELECT' || firstErrorField.tagName === 'TEXTAREA') {
+                        setTimeout(() => firstErrorField.focus(), 300);
+                    }
+                }
                 return;
             }
             
