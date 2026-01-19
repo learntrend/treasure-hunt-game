@@ -687,24 +687,32 @@
             const today = new Date().toISOString().split('T')[0];
             dateInput.setAttribute('min', today);
             
-            // Initialize Firebase
-            // Try to use DatabaseService first, then fallback to local initialization
-            if (typeof window.DatabaseService !== 'undefined' && window.DatabaseService.isInitialized) {
-                window.DatabaseService.initializeFirebase();
-                // Wait a bit for DatabaseService to initialize, then set local db
-                setTimeout(() => {
-                    if (firebase && firebase.firestore) {
-                        db = firebase.firestore();
-                        isInitialized = true;
-                        // Load time slots if date is already selected
-                        if (dateInput.value) {
-                            loadAvailableTimeSlots(dateInput.value);
-                        }
-                    }
-                }, 100);
-            }
-            // Always initialize local Firebase as well
+            // Initialize Firebase - ensure both are initialized
             initializeFirebase();
+            
+            // Also initialize DatabaseService if available
+            if (typeof window.DatabaseService !== 'undefined') {
+                window.DatabaseService.initializeFirebase();
+            }
+            
+            // Ensure db is set and load time slots
+            const ensureDbAndLoadSlots = () => {
+                if (!db && firebase && firebase.firestore) {
+                    db = firebase.firestore();
+                    isInitialized = true;
+                }
+                
+                // Load time slots if date is selected and db is ready
+                if (db && isInitialized && dateInput.value) {
+                    loadAvailableTimeSlots(dateInput.value);
+                } else if (!db || !isInitialized) {
+                    // Retry if db not ready yet
+                    setTimeout(ensureDbAndLoadSlots, 100);
+                }
+            };
+            
+            // Start checking after scripts load
+            setTimeout(ensureDbAndLoadSlots, 300);
 
             // Load available hours when date changes
             dateInput.addEventListener('change', function() {
