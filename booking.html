@@ -1074,6 +1074,22 @@
                 errorDiv.textContent = message;
             }
         }
+        })(); // End IIFE
+        
+        // Make selectPayment globally accessible (outside IIFE scope)
+        window.selectPayment = function(method) {
+            document.querySelectorAll('.payment-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            const paymentInput = document.getElementById(`payment-${method}`);
+            if (paymentInput) {
+                paymentInput.checked = true;
+                const paymentOption = paymentInput.closest('.payment-option');
+                if (paymentOption) {
+                    paymentOption.classList.add('selected');
+                }
+            }
+        };
     </script>
 </body>
 </html>
