@@ -1127,7 +1127,7 @@
 
             try {
                 // Get booking data
-                const bookingDoc = await db.collection('bookings').doc(bookingId).get();
+                const bookingDoc = await localDb.collection('bookings').doc(bookingId).get();
                 if (!bookingDoc.exists) {
                     alert('Booking not found');
                     return;
