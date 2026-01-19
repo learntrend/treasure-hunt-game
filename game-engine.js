@@ -182,11 +182,19 @@ class GameEngine {
         }
     }
 
-    // Normalize string: remove wildcard characters and convert to lowercase
+    // Normalize string: remove wildcard characters, articles, spaces and convert to lowercase
     normalizeAnswer(answerText) {
         // Remove wildcard characters: *, ?, [, ], {, }, ^, $, |, \, /, etc.
         const wildcardPattern = /[*?\[\]{}^$|\\\/]/g;
-        return answerText.trim().toLowerCase().replace(wildcardPattern, '');
+        let normalized = answerText.trim().toLowerCase().replace(wildcardPattern, '');
+        
+        // Remove articles: "the", "a", "an" (as whole words)
+        normalized = normalized.replace(/\b(the|a|an)\b/g, '');
+        
+        // Remove all spaces
+        normalized = normalized.replace(/\s+/g, '');
+        
+        return normalized.trim();
     }
 
     // Submit answer and update score (text-based)
