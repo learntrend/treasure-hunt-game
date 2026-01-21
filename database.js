@@ -728,13 +728,21 @@ async function createGameSessionFromBooking(bookingId, bookingData) {
 }
 
 // Check if game can be accessed (time-based and status checks)
-async function canAccessGame(bookingId = null, sessionId = null) {
+async function canAccessGame(bookingId = null, sessionId = null, isResuming = false) {
     if (!db || !isInitialized) {
         return { canAccess: false, reason: 'Database not initialized' };
     }
 
     try {
         let gameSession = null;
+        
+        // If resuming, check for existing session first
+        if (isResuming && bookingId) {
+            const existingSession = await checkExistingSessionForUser(bookingId);
+            if (existingSession) {
+                gameSession = existingSession;
+            }
+        }
 
         // Find game session by bookingId or sessionId
         if (bookingId) {
@@ -764,8 +772,41 @@ async function canAccessGame(bookingId = null, sessionId = null) {
             }
         }
 
+        // If no session found and not resuming, check if we can create a new one
+        if (!gameSession && bookingId && !isResuming) {
+            // Get booking data to check number of participants
+            try {
+                const bookingDoc = await db.collection('bookings').doc(bookingId).get();
+                const docExists = typeof bookingDoc.exists === 'function' ? bookingDoc.exists() : bookingDoc.exists;
+                
+                if (docExists) {
+                    const bookingData = bookingDoc.data();
+                    const numParticipants = parseInt(bookingData.players) || 1;
+                    
+                    // Count existing active sessions
+                    const activeSessionCount = await countActiveSessionsForBooking(bookingId);
+                    
+                    // Check if we've reached the limit
+                    if (activeSessionCount >= numParticipants) {
+                        return { 
+                            canAccess: false, 
+                            reason: `Maximum number of game instances (${numParticipants}) have already been started for this booking. Please use "Resume Previous Game" if you have an existing session.` 
+                        };
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking session limits:', error);
+                // Continue - don't block if there's an error checking limits
+            }
+        }
+        
+        if (!gameSession && !isResuming) {
+            // Allow creating new session (will be checked again in startGame)
+            return { canAccess: true, gameSession: null };
+        }
+        
         if (!gameSession) {
-            return { canAccess: false, reason: 'Game session not found' };
+            return { canAccess: false, reason: 'Game session not found. Please start a new game.' };
         }
 
         // Check game status
@@ -926,6 +967,54 @@ async function getGameSessionByBookingId(bookingId) {
     }
 }
 
+// Count active game sessions for a booking
+async function countActiveSessionsForBooking(bookingId) {
+    if (!db || !isInitialized) {
+        return 0;
+    }
+
+    try {
+        const querySnapshot = await db.collection('gameSessions')
+            .where('bookingId', '==', bookingId)
+            .where('gameStatus', 'in', ['pending', 'active'])
+            .get();
+
+        return querySnapshot.size;
+    } catch (error) {
+        console.error('Error counting active sessions:', error);
+        return 0;
+    }
+}
+
+// Check if session exists for current user (by sessionId in localStorage)
+async function checkExistingSessionForUser(bookingId) {
+    if (!db || !isInitialized) {
+        return null;
+    }
+
+    try {
+        const sessionId = getSessionId();
+        if (!sessionId) {
+            return null;
+        }
+
+        const sessionDoc = await db.collection('gameSessions').doc(sessionId).get();
+        const docExists = typeof sessionDoc.exists === 'function' ? sessionDoc.exists() : sessionDoc.exists;
+        
+        if (docExists) {
+            const sessionData = sessionDoc.data();
+            // Check if this session belongs to the booking
+            if (sessionData.bookingId === bookingId) {
+                return { id: sessionDoc.id, ...sessionData };
+            }
+        }
+        return null;
+    } catch (error) {
+        console.error('Error checking existing session:', error);
+        return null;
+    }
+}
+
 // Export functions as global object
 window.DatabaseService = {
     saveGameState,
@@ -944,5 +1033,7 @@ window.DatabaseService = {
     createGameSessionFromBooking,
     canAccessGame,
     updateGameStatus,
-    getGameSessionByBookingId
+    getGameSessionByBookingId,
+    countActiveSessionsForBooking,
+    checkExistingSessionForUser
 };

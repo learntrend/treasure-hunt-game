@@ -219,8 +219,8 @@ function setupEventListeners() {
     if (closeHintModalBtn) closeHintModalBtn.addEventListener('click', closeHintModal);
     
     // Feedback modal
-    const closeFeedbackModal = document.getElementById('close-feedback-modal');
-    if (closeFeedbackModal) closeFeedbackModal.addEventListener('click', closeFeedbackModal);
+    const closeFeedbackModalBtn = document.getElementById('close-feedback-modal');
+    if (closeFeedbackModalBtn) closeFeedbackModalBtn.addEventListener('click', closeFeedbackModal);
     
     // Final screen
     document.getElementById('give-feedback-btn').addEventListener('click', showFeedbackModal);
@@ -322,26 +322,53 @@ async function startGame() {
     
     // If booking-based game, check access first
     if (bookingId && window.DatabaseService && window.DatabaseService.isInitialized()) {
-        const accessCheck = await window.DatabaseService.canAccessGame(bookingId);
+        // Check if user has an existing session (resume scenario)
+        const existingSession = await window.DatabaseService.checkExistingSessionForUser(bookingId);
         
-        if (!accessCheck.canAccess) {
-            alert(accessCheck.reason || 'You cannot start this game at this time.');
-            return;
-        }
-        
-        // Get or create game session
-        const gameSession = accessCheck.gameSession;
-        if (gameSession) {
-            // Use existing session
+        if (existingSession) {
+            // User is resuming - allow access
             gameEngine.bookingId = bookingId;
-            gameEngine.bookingDate = gameSession.bookingDate;
-            gameEngine.bookingTime = gameSession.bookingTime;
-            gameEngine.gameStatus = 'active';
+            gameEngine.bookingDate = existingSession.bookingDate;
+            gameEngine.bookingTime = existingSession.bookingTime;
+            gameEngine.gameStatus = existingSession.gameStatus || 'active';
             
-            // Update game status to active
-            await window.DatabaseService.updateGameStatus(gameSession.id, 'active');
+            // Update game status to active if it was pending
+            if (existingSession.gameStatus === 'pending') {
+                await window.DatabaseService.updateGameStatus(existingSession.id, 'active');
+                gameEngine.gameStatus = 'active';
+            }
         } else {
-            // Create new session from booking
+            // New session - check access and limits
+            const accessCheck = await window.DatabaseService.canAccessGame(bookingId, null, false);
+            
+            if (!accessCheck.canAccess) {
+                alert(accessCheck.reason || 'You cannot start this game at this time.');
+                return;
+            }
+            
+            // Double-check session count before creating
+            const dbRef = window.DatabaseService.db || (typeof firebase !== 'undefined' && firebase.firestore ? firebase.firestore() : null);
+            if (dbRef) {
+                try {
+                    const bookingDoc = await dbRef.collection('bookings').doc(bookingId).get();
+                    const docExists = typeof bookingDoc.exists === 'function' ? bookingDoc.exists() : bookingDoc.exists;
+                    
+                    if (docExists) {
+                        const bookingData = bookingDoc.data();
+                        const numParticipants = parseInt(bookingData.players) || 1;
+                        const activeSessionCount = await window.DatabaseService.countActiveSessionsForBooking(bookingId);
+                        
+                        if (activeSessionCount >= numParticipants) {
+                            alert(`Maximum number of game instances (${numParticipants}) have already been started for this booking. Please use "Resume Previous Game" if you have an existing session.`);
+                            return;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error checking session limits:', error);
+                }
+            }
+            
+            // Create new session
             gameEngine.bookingId = bookingId;
             gameEngine.gameStatus = 'active';
         }
@@ -823,8 +850,8 @@ function showTitbits() {
     const location = gameEngine.getCurrentLocation();
     if (!location) return;
     
-    // Pause timer
-    gameEngine.pauseTimer();
+    // Don't pause timer - players should not be able to manipulate timer by viewing titbits
+    // Timer continues running while viewing titbits
     
     // Show titbits
     document.getElementById('titbits-text').innerHTML = `<p>${location.titbits}</p>`;
@@ -833,8 +860,8 @@ function showTitbits() {
 
 // Close titbits
 function closeTitbits() {
-    // Resume timer
-    gameEngine.resumeTimer();
+    // Don't resume timer - it was never paused
+    // Timer continues running normally
     
     // Return to game screen
     showScreen('game-screen');
@@ -993,6 +1020,14 @@ function closeFeedbackModal() {
     document.querySelectorAll('.rating-btn').forEach(btn => btn.classList.remove('selected'));
     document.getElementById('feedback-form').style.display = 'block';
     document.getElementById('feedback-success').style.display = 'none';
+    
+    // Clear errors
+    document.querySelectorAll('.form-group').forEach(group => group.classList.remove('error'));
+    const errorContainer = document.getElementById('feedback-errors');
+    if (errorContainer) {
+        errorContainer.innerHTML = '';
+        errorContainer.style.display = 'none';
+    }
 }
 
 // Handle feedback form submission
@@ -1014,31 +1049,49 @@ async function handleFeedbackSubmit(e) {
     
     // Validation
     let isValid = true;
+    const errorMessages = [];
     
     // Clear previous errors
     document.querySelectorAll('.form-group').forEach(group => group.classList.remove('error'));
+    const errorContainer = document.getElementById('feedback-errors');
+    if (errorContainer) {
+        errorContainer.innerHTML = '';
+        errorContainer.style.display = 'none';
+    }
     
     if (!rating) {
         showFormError('rating', 'Please select a rating');
+        errorMessages.push('Please select a rating');
         isValid = false;
     }
     
     if (enjoyed.length === 0) {
         showFormError(document.querySelector('.checkbox-group').closest('.form-group'), 'Please select at least one option');
+        errorMessages.push('Please select what you enjoyed');
         isValid = false;
     }
     
     if (!difficulty) {
         showFormError('difficulty', 'Please select difficulty level');
+        errorMessages.push('Please select difficulty level');
         isValid = false;
     }
     
     if (!recommend) {
         showFormError('recommend', 'Please select recommendation');
+        errorMessages.push('Please select recommendation');
         isValid = false;
     }
     
     if (!isValid) {
+        // Show errors near submit button
+        if (errorContainer && errorMessages.length > 0) {
+            errorContainer.innerHTML = '<strong>Please fix the following errors:</strong><ul>' + 
+                errorMessages.map(msg => `<li>${msg}</li>`).join('') + '</ul>';
+            errorContainer.style.display = 'block';
+            // Scroll to error container
+            errorContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
         return;
     }
     

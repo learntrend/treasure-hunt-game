@@ -1087,6 +1087,11 @@
                             <input type="time" id="edit-time" value="${booking.time || ''}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
                         </div>
                         <div class="form-group">
+                            <label>Number of Participants:</label>
+                            <input type="number" id="edit-players" value="${booking.players || '1'}" min="1" max="50" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                            <small style="color: #666; font-size: 0.85rem; display: block; margin-top: 5px;">This determines how many game instances can be started for this booking. Increasing this allows more players to start new games.</small>
+                        </div>
+                        <div class="form-group">
                             <label>Status:</label>
                             <select id="edit-status" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
                                 <option value="pending" ${booking.status === 'pending' ? 'selected' : ''}>Pending</option>
@@ -1113,12 +1118,16 @@
             }
 
             try {
+                const playersValue = document.getElementById('edit-players').value;
+                const players = parseInt(playersValue) || 1;
+                
                 const updates = {
                     name: document.getElementById('edit-name').value.trim(),
                     email: document.getElementById('edit-email').value.trim(),
                     phone: document.getElementById('edit-phone').value.trim(),
                     date: document.getElementById('edit-date').value,
                     time: document.getElementById('edit-time').value,
+                    players: players.toString(), // Store as string to match booking format
                     status: document.getElementById('edit-status').value,
                     updatedAt: firebase.firestore.Timestamp.now()
                 };
