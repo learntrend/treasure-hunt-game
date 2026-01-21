@@ -94,11 +94,15 @@
                     <option value="solo">Solo Explorer</option>
                     <option value="group">Group Adventure</option>
                 </select>
-                <label id="name-label" for="player-name">Your Name:</label>
-                <input type="text" id="player-name" placeholder="Enter your name" maxlength="50">
-                <div id="group-names-container" style="display: none;">
-                    <label for="group-names">Group Members (comma separated):</label>
-                    <input type="text" id="group-names" placeholder="Friend 1, Friend 2, Friend 3">
+                <div id="solo-name-container">
+                    <label id="name-label" for="player-name">Your Name:</label>
+                    <input type="text" id="player-name" placeholder="Enter your name" maxlength="50">
+                </div>
+                <div id="group-name-container" style="display: none;">
+                    <label for="team-name">Team Name:</label>
+                    <input type="text" id="team-name" placeholder="Enter your team name" maxlength="50">
+                    <label for="player-name-group" style="margin-top: 15px;">Your Name:</label>
+                    <input type="text" id="player-name-group" placeholder="Enter your name" maxlength="50">
                 </div>
             </div>
             <button id="start-game-btn" class="btn-primary btn-sparkle">Begin the Journey</button>

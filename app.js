@@ -135,10 +135,6 @@ function setupEventListeners() {
     if (groupSizeEl) {
         groupSizeEl.addEventListener('change', (e) => {
             updateNameLabel(e.target.value);
-            const groupContainer = document.getElementById('group-names-container');
-            if (groupContainer) {
-                groupContainer.style.display = e.target.value === 'group' ? 'block' : 'none';
-            }
         });
     }
     
@@ -249,15 +245,15 @@ function setupEventListeners() {
 
 // Update name label based on group size
 function updateNameLabel(groupSize) {
-    const nameLabel = document.getElementById('name-label');
-    const nameInput = document.getElementById('player-name');
+    const soloContainer = document.getElementById('solo-name-container');
+    const groupContainer = document.getElementById('group-name-container');
     
     if (groupSize === 'group') {
-        nameLabel.textContent = 'Your Team Name:';
-        nameInput.placeholder = 'Enter your team name';
+        if (soloContainer) soloContainer.style.display = 'none';
+        if (groupContainer) groupContainer.style.display = 'block';
     } else {
-        nameLabel.textContent = 'Your Name:';
-        nameInput.placeholder = 'Enter your name';
+        if (soloContainer) soloContainer.style.display = 'block';
+        if (groupContainer) groupContainer.style.display = 'none';
     }
 }
 
@@ -296,21 +292,33 @@ function startAfterTutorial() {
 
 // Start game from welcome screen
 async function startGame() {
-    const playerName = document.getElementById('player-name').value.trim();
     const groupSize = document.getElementById('group-size').value;
-    const groupNames = document.getElementById('group-names').value.trim();
+    let playerName, teamName;
+    
+    if (groupSize === 'group') {
+        teamName = document.getElementById('team-name').value.trim();
+        playerName = document.getElementById('player-name-group').value.trim();
+        
+        if (!teamName) {
+            alert('Please enter your team name to begin.');
+            return;
+        }
+        
+        if (!playerName) {
+            alert('Please enter your name to begin.');
+            return;
+        }
+    } else {
+        playerName = document.getElementById('player-name').value.trim();
+        
+        if (!playerName) {
+            alert('Please enter your name to begin.');
+            return;
+        }
+    }
+    
     const bookingId = getURLParameter('bookingId');
-    
-    if (!playerName) {
-        const label = groupSize === 'group' ? 'team name' : 'name';
-        alert(`Please enter your ${label} to begin.`);
-        return;
-    }
-    
-    if (groupSize === 'group' && !groupNames) {
-        alert('Please enter group member names.');
-        return;
-    }
+    let allPlayerNames = [playerName]; // Start with current player's name
     
     // If booking-based game, check access first
     if (bookingId && window.DatabaseService && window.DatabaseService.isInitialized()) {
@@ -334,10 +342,21 @@ async function startGame() {
             await window.DatabaseService.updateGameStatus(gameSession.id, 'active');
         } else {
             // Create new session from booking
-            // Note: This would require fetching booking data first
-            // For now, we'll create session with booking ID
             gameEngine.bookingId = bookingId;
             gameEngine.gameStatus = 'active';
+        }
+        
+        // For group games, fetch all player names from sessions with same bookingId/time slot
+        if (groupSize === 'group' && bookingId) {
+            try {
+                const allPlayerNamesList = await fetchAllPlayerNamesForBooking(bookingId, teamName);
+                if (allPlayerNamesList && allPlayerNamesList.length > 0) {
+                    allPlayerNames = allPlayerNamesList;
+                }
+            } catch (error) {
+                console.error('Error fetching player names:', error);
+                // Continue with just current player's name
+            }
         }
     } else {
         // Non-booking game (for testing/development)
@@ -350,14 +369,140 @@ async function startGame() {
     // Store player type
     currentPlayerType = groupSize;
     
-    // Initialize game engine (personal message will be fetched from database later)
-    gameEngine.initialize(playerName, groupSize, groupNames, null);
+    // For group games, use team name as playerName and store all names as groupMembers
+    const finalPlayerName = groupSize === 'group' ? teamName : playerName;
+    
+    // Initialize game engine with team name (for group) or player name (for solo)
+    // groupMembers will be updated after we fetch all names
+    gameEngine.initialize(finalPlayerName, groupSize, '', null);
+    
+    // Store individual player name for group games (needed for fetching all names)
+    if (groupSize === 'group') {
+        gameEngine.individualPlayerName = playerName;
+    }
+    
+    // For group games, fetch and update all player names
+    if (groupSize === 'group' && bookingId && window.DatabaseService) {
+        try {
+            const allNames = await fetchAllPlayerNamesForBooking(bookingId, teamName, playerName);
+            if (allNames && allNames.length > 0) {
+                gameEngine.groupMembers = allNames;
+            } else {
+                // If no other players found yet, start with current player
+                gameEngine.groupMembers = [playerName];
+            }
+        } catch (error) {
+            console.error('Error fetching player names:', error);
+            gameEngine.groupMembers = [playerName];
+        }
+        
+        // Save game state with updated group members
+        await saveGameState();
+    }
     
     // Update score display to show initial 100 points
     updateScoreDisplay(gameEngine.getScore());
     
     // Show character introduction first
-    showCharacterIntroduction(playerName, groupSize);
+    showCharacterIntroduction(finalPlayerName, groupSize);
+}
+
+// Fetch all player names from sessions with same bookingId and time slot
+async function fetchAllPlayerNamesForBooking(bookingId, teamName, currentPlayerName) {
+    if (!window.DatabaseService || !window.DatabaseService.isInitialized()) {
+        return null;
+    }
+    
+    try {
+        // Get db reference
+        const db = window.DatabaseService.db || (typeof firebase !== 'undefined' && firebase.firestore ? firebase.firestore() : null);
+        if (!db) {
+            return null;
+        }
+        
+        // Find all game sessions for this booking
+        const sessionsSnapshot = await db.collection('gameSessions')
+            .where('bookingId', '==', bookingId)
+            .get();
+        
+        const playerNamesSet = new Set();
+        const teamNamesMap = new Map(); // Map to track team names (case-insensitive)
+        
+        // Collect all individual player names and team names
+        sessionsSnapshot.forEach(doc => {
+            const sessionData = doc.data();
+            
+            if (sessionData.playerType === 'group') {
+                // For group games, playerName is the team name
+                const sessionTeamName = sessionData.playerName;
+                if (sessionTeamName) {
+                    const teamNameLower = sessionTeamName.toLowerCase().trim();
+                    // Store team name (case-insensitive key)
+                    if (!teamNamesMap.has(teamNameLower)) {
+                        teamNamesMap.set(teamNameLower, sessionTeamName);
+                    }
+                }
+                
+                // Get individual player names
+                if (sessionData.individualPlayerName) {
+                    playerNamesSet.add(sessionData.individualPlayerName.trim());
+                }
+                
+                // Also check groupMembers (for backward compatibility)
+                if (sessionData.groupMembers) {
+                    if (Array.isArray(sessionData.groupMembers)) {
+                        sessionData.groupMembers.forEach(name => {
+                            if (name && name.trim()) {
+                                playerNamesSet.add(name.trim());
+                            }
+                        });
+                    } else if (typeof sessionData.groupMembers === 'string') {
+                        // Handle comma-separated string
+                        sessionData.groupMembers.split(',').forEach(name => {
+                            const trimmed = name.trim();
+                            if (trimmed) {
+                                playerNamesSet.add(trimmed);
+                            }
+                        });
+                    }
+                }
+            }
+        });
+        
+        // Add current player's name
+        if (currentPlayerName) {
+            playerNamesSet.add(currentPlayerName.trim());
+        }
+        
+        // If team names differ (case-insensitive), select one based on time slot
+        // Since only one group plays per slot, use the first one found or current one
+        if (teamNamesMap.size > 0) {
+            const teamNameLower = teamName.toLowerCase().trim();
+            // Check if current team name matches any existing (case-insensitive)
+            let matchingTeamName = null;
+            for (const [lowerName, originalName] of teamNamesMap.entries()) {
+                if (lowerName === teamNameLower) {
+                    matchingTeamName = originalName;
+                    break;
+                }
+            }
+            
+            // Use matching team name or first one found (for consistency)
+            const selectedTeamName = matchingTeamName || Array.from(teamNamesMap.values())[0];
+            
+            // Update gameEngine's playerName to use the selected team name (for consistency)
+            if (gameEngine && gameEngine.bookingId === bookingId) {
+                gameEngine.playerName = selectedTeamName;
+            }
+        }
+        
+        // Return all individual player names
+        const allNames = Array.from(playerNamesSet);
+        return allNames.length > 0 ? allNames : null;
+    } catch (error) {
+        console.error('Error fetching all player names:', error);
+        return null;
+    }
 }
 
 // Start gameplay when player arrives at starting point
@@ -464,21 +609,11 @@ function handleSubmitLocationName() {
         
         // Store callback to continue after popup closes
         const continueAfterPopup = () => {
-            // Hide and disable map hint button since location is now confirmed
-            const mapHintBtn = document.getElementById('map-hint-btn');
-            if (mapHintBtn) {
-                mapHintBtn.disabled = true;
-                mapHintBtn.style.display = 'none';
+            // Hide the entire clue section since location is now identified
+            const clueSection = document.getElementById('clue-section');
+            if (clueSection) {
+                clueSection.style.display = 'none';
             }
-            
-            // Also hide the hint-buttons container in clue section
-            const clueHintButtons = document.querySelector('#clue-section .hint-buttons');
-            if (clueHintButtons) {
-                clueHintButtons.style.display = 'none';
-            }
-            
-            // Hide location name input
-            document.getElementById('location-name-input-container').style.display = 'none';
             
             // Show location confirmation (no animation - keep static)
             document.getElementById('location-name').textContent = location.locationName || location.name;
@@ -724,13 +859,16 @@ async function fetchPersonalMessage() {
             }
             
             // Try to get from booking document
-            if (db) {
-                const bookingDoc = await db.collection('bookings').doc(gameEngine.bookingId).get();
-                if (bookingDoc.exists()) {
+            // Get db reference from DatabaseService or firebase
+            const dbRef = window.DatabaseService.db || (typeof firebase !== 'undefined' && firebase.firestore ? firebase.firestore() : null);
+            if (dbRef) {
+                const bookingDoc = await dbRef.collection('bookings').doc(gameEngine.bookingId).get();
+                const docExists = typeof bookingDoc.exists === 'function' ? bookingDoc.exists() : bookingDoc.exists;
+                if (docExists) {
                     const bookingData = bookingDoc.data();
-                    if (bookingData.personalMessage) {
+                    if (bookingData && bookingData.personalMessage && bookingData.personalMessage.trim()) {
                         let message = bookingData.personalMessage;
-                        if (bookingData.messageFrom) {
+                        if (bookingData.messageFrom && bookingData.messageFrom.trim()) {
                             message = `From ${bookingData.messageFrom},\n\n${message}`;
                         }
                         return message;

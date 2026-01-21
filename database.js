@@ -104,6 +104,16 @@ function gameStateToDB(gameEngine, playerType, bookingId = null) {
         locationNamesSubmitted: Array.from(gameEngine.locationNamesSubmitted || []),
         updatedAt: firebase.firestore.Timestamp.now()
     };
+    
+    // Store individual player name for group games (needed to fetch all names)
+    if (playerType === 'group' && gameEngine.individualPlayerName) {
+        state.individualPlayerName = gameEngine.individualPlayerName;
+    }
+    
+    // Convert groupMembers to array if it's a string (comma-separated)
+    if (typeof state.groupMembers === 'string') {
+        state.groupMembers = state.groupMembers.split(',').map(name => name.trim()).filter(name => name);
+    }
 
     // Add booking-related fields if they exist
     if (gameEngine.bookingId || bookingId) {

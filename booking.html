@@ -631,15 +631,38 @@
                     hourSelect.innerHTML = '<option value="">Hour</option>';
                 }
 
+                // Check current date and time to filter out past slots
+                const now = new Date();
+                const today = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+                const currentHour = now.getHours();
+                const currentMinute = now.getMinutes();
+                const isToday = selectedDate === today;
+                
                 // Check which hours have available slots
                 const hoursWithAvailability = new Set();
                 availableHours.forEach(hour => {
                     const minutes = ['00', '15', '30', '45'];
                     minutes.forEach(minute => {
                         const slot = `${hour}:${minute}`;
-                        if (!takenSlots.has(slot)) {
-                            hoursWithAvailability.add(hour);
+                        
+                        // Skip if slot is taken
+                        if (takenSlots.has(slot)) {
+                            return;
                         }
+                        
+                        // If today, filter out past time slots
+                        if (isToday) {
+                            const slotHour = parseInt(hour, 10);
+                            const slotMinute = parseInt(minute, 10);
+                            
+                            // Skip if slot time has passed
+                            if (slotHour < currentHour || (slotHour === currentHour && slotMinute < currentMinute)) {
+                                return;
+                            }
+                        }
+                        
+                        // Slot is available
+                        hoursWithAvailability.add(hour);
                     });
                 });
 
@@ -725,15 +748,38 @@
             // Clear minute dropdown
             minuteSelect.innerHTML = '<option value="">Minute</option>';
 
+            // Check current date and time to filter out past slots
+            const now = new Date();
+            const today = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            const isToday = selectedDate === today;
+            const selectedHourInt = parseInt(selectedHour, 10);
+            
             // Add available minutes for the selected hour
             allMinutes.forEach(minute => {
                 const slot = `${selectedHour}:${minute}`;
-                if (!takenSlots.has(slot)) {
-                    const option = document.createElement('option');
-                    option.value = minute;
-                    option.textContent = minute;
-                    minuteSelect.appendChild(option);
+                
+                // Skip if slot is taken
+                if (takenSlots.has(slot)) {
+                    return;
                 }
+                
+                // If today, filter out past time slots
+                if (isToday) {
+                    const slotMinute = parseInt(minute, 10);
+                    
+                    // Skip if slot time has passed
+                    if (selectedHourInt < currentHour || (selectedHourInt === currentHour && slotMinute < currentMinute)) {
+                        return;
+                    }
+                }
+                
+                // Slot is available
+                const option = document.createElement('option');
+                option.value = minute;
+                option.textContent = minute;
+                minuteSelect.appendChild(option);
             });
 
             if (minuteSelect.options.length === 1) {
