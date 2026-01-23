@@ -627,10 +627,8 @@ function handleSubmitLocationName() {
             // Save game state after correct location name
             saveGameState();
             
-            // Show question section after a short delay with fade-in animation only
-            setTimeout(() => {
-                showQuestionSection();
-            }, 1500);
+            // Show question section immediately without delay
+            showQuestionSection();
         };
         
         // Show character popup with callback
