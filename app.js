@@ -322,53 +322,26 @@ async function startGame() {
     
     // If booking-based game, check access first
     if (bookingId && window.DatabaseService && window.DatabaseService.isInitialized()) {
-        // Check if user has an existing session (resume scenario)
-        const existingSession = await window.DatabaseService.checkExistingSessionForUser(bookingId);
+        const accessCheck = await window.DatabaseService.canAccessGame(bookingId);
         
-        if (existingSession) {
-            // User is resuming - allow access
+        if (!accessCheck.canAccess) {
+            alert(accessCheck.reason || 'You cannot start this game at this time.');
+            return;
+        }
+        
+        // Get or create game session
+        const gameSession = accessCheck.gameSession;
+        if (gameSession) {
+            // Use existing session
             gameEngine.bookingId = bookingId;
-            gameEngine.bookingDate = existingSession.bookingDate;
-            gameEngine.bookingTime = existingSession.bookingTime;
-            gameEngine.gameStatus = existingSession.gameStatus || 'active';
+            gameEngine.bookingDate = gameSession.bookingDate;
+            gameEngine.bookingTime = gameSession.bookingTime;
+            gameEngine.gameStatus = 'active';
             
-            // Update game status to active if it was pending
-            if (existingSession.gameStatus === 'pending') {
-                await window.DatabaseService.updateGameStatus(existingSession.id, 'active');
-                gameEngine.gameStatus = 'active';
-            }
+            // Update game status to active
+            await window.DatabaseService.updateGameStatus(gameSession.id, 'active');
         } else {
-            // New session - check access and limits
-            const accessCheck = await window.DatabaseService.canAccessGame(bookingId, null, false);
-            
-            if (!accessCheck.canAccess) {
-                alert(accessCheck.reason || 'You cannot start this game at this time.');
-                return;
-            }
-            
-            // Double-check session count before creating
-            const dbRef = window.DatabaseService.db || (typeof firebase !== 'undefined' && firebase.firestore ? firebase.firestore() : null);
-            if (dbRef) {
-                try {
-                    const bookingDoc = await dbRef.collection('bookings').doc(bookingId).get();
-                    const docExists = typeof bookingDoc.exists === 'function' ? bookingDoc.exists() : bookingDoc.exists;
-                    
-                    if (docExists) {
-                        const bookingData = bookingDoc.data();
-                        const numParticipants = parseInt(bookingData.players) || 1;
-                        const activeSessionCount = await window.DatabaseService.countActiveSessionsForBooking(bookingId);
-                        
-                        if (activeSessionCount >= numParticipants) {
-                            alert(`Maximum number of game instances (${numParticipants}) have already been started for this booking. Please use "Resume Previous Game" if you have an existing session.`);
-                            return;
-                        }
-                    }
-                } catch (error) {
-                    console.error('Error checking session limits:', error);
-                }
-            }
-            
-            // Create new session
+            // Create new session from booking
             gameEngine.bookingId = bookingId;
             gameEngine.gameStatus = 'active';
         }
@@ -403,10 +376,8 @@ async function startGame() {
     // groupMembers will be updated after we fetch all names
     gameEngine.initialize(finalPlayerName, groupSize, '', null);
     
-    // Store individual player name for group games (needed for fetching all names)
-    if (groupSize === 'group') {
-        gameEngine.individualPlayerName = playerName;
-    }
+    // Store individual player name for both solo and group games (needed for Archibald to reference the actual player)
+    gameEngine.individualPlayerName = playerName;
     
     // For group games, fetch and update all player names
     if (groupSize === 'group' && bookingId && window.DatabaseService) {
@@ -534,11 +505,14 @@ async function fetchAllPlayerNamesForBooking(bookingId, teamName, currentPlayerN
 
 // Start gameplay when player arrives at starting point
 async function startGameplay() {
+    // Use actual player name (individual player name, not team name or booking name)
+    const actualPlayerName = gameEngine.individualPlayerName || gameEngine.playerName;
+    
     // Show welcome message from character
     const welcomeMessages = [
-        `Excellent! You've arrived at the starting point. Your journey through time begins now, ${gameEngine.playerName}!`,
-        `Splendid! The adventure commences. Let's see what mysteries await you, ${gameEngine.playerName}!`,
-        `Wonderful! You're ready to begin. The lost letter from 1800 awaits discovery, ${gameEngine.playerName}!`
+        `Excellent! You've arrived at the starting point. Your journey through time begins now, ${actualPlayerName}!`,
+        `Splendid! The adventure commences. Let's see what mysteries await you, ${actualPlayerName}!`,
+        `Wonderful! You're ready to begin. The letter left behind awaits discovery, ${actualPlayerName}!`
     ];
     const randomWelcome = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
     
@@ -683,13 +657,8 @@ function showQuestionSection() {
     
     const questionSection = document.getElementById('question-section');
     questionSection.style.display = 'block';
-    // Remove scroll-reveal and use fade-in instead
-    questionSection.classList.remove('scroll-reveal');
-    questionSection.classList.add('fade-in');
-    // Remove fade-in class after animation completes
-    setTimeout(() => {
-        questionSection.classList.remove('fade-in');
-    }, 1000);
+    // Remove all animations - display statically
+    questionSection.classList.remove('scroll-reveal', 'fade-in');
     
     document.getElementById('action-buttons-container').style.display = 'block';
     
@@ -1187,11 +1156,11 @@ function setupRatingButtons() {
 // Share results
 function shareResults() {
     const stats = gameEngine.getFinalStats();
-    const shareText = `I completed the Lost Letter from 1800 treasure hunt!\n\nTime: ${stats.time}\nScore: ${stats.score} points\n\nCan you beat my time?`;
+    const shareText = `I completed the Letter Left Behind treasure hunt!\n\nTime: ${stats.time}\nScore: ${stats.score} points\n\nCan you beat my time?`;
     
     if (navigator.share) {
         navigator.share({
-            title: 'Lost Letter from 1800 - Treasure Hunt',
+            title: 'Letter Left Behind - Treasure Hunt',
             text: shareText
         }).catch(err => console.log('Error sharing:', err));
     } else {
@@ -1717,12 +1686,14 @@ function formatTimeForResume(seconds) {
 // Show character introduction
 function showCharacterIntroduction(playerName, groupSize) {
     const characterIntroText = document.getElementById('character-intro-text');
-    const greeting = groupSize === 'group' ? `Greetings, ${playerName}!` : `Greetings, ${playerName}!`;
+    // Use actual player name (individual player name, not team name or booking name)
+    const actualPlayerName = gameEngine.individualPlayerName || playerName;
+    const greeting = `Greetings, ${actualPlayerName}!`;
     
     characterIntroText.innerHTML = `
         ${greeting} I am <strong>Master Archibald</strong>, the keeper of this temporal treasure hunt and master of this game.<br><br>
         Through my time-traveling mechanisms and steampunk contraptions, I have crafted this journey across the centuries for you.<br><br>
-        Your quest: Follow the clues, solve the puzzles, and discover the lost letter from 1800. I shall be your guide, appearing when you need assistance or when you achieve great feats.<br><br>
+        Your quest: Follow the clues, solve the puzzles, and discover the letter left behind. I shall be your guide, appearing when you need assistance or when you achieve great feats.<br><br>
         <em>Remember: You start with 100 bonus points. Each correct answer earns you 100 points. Hints cost points, but wisdom often comes at a price!</em><br><br>
         Are you ready to begin this adventure through time?
     `;
@@ -1812,18 +1783,19 @@ async function closeCharacterPopup() {
 // Get motivational message based on progress
 function getMotivationalMessage(currentLocation, totalLocations) {
     const progress = currentLocation / totalLocations;
-    const playerName = gameEngine.playerName;
+    // Use actual player name (individual player name, not team name or booking name)
+    const playerName = gameEngine.individualPlayerName || gameEngine.playerName;
     
     let message = '';
     
     if (currentLocation === 1) {
         message = `Excellent work, ${playerName}! You've found your first location. The journey has truly begun!`;
     } else if (currentLocation === Math.floor(totalLocations / 2)) {
-        message = `Magnificent progress, ${playerName}! You're halfway through your quest. The letter from 1800 draws nearer!`;
+        message = `Magnificent progress, ${playerName}! You're halfway through your quest. The letter left behind draws nearer!`;
     } else if (currentLocation === totalLocations - 1) {
-        message = `Outstanding, ${playerName}! You're on the final stretch. The lost letter awaits at your next destination!`;
+        message = `Outstanding, ${playerName}! You're on the final stretch. The letter left behind awaits at your next destination!`;
     } else if (currentLocation === totalLocations) {
-        message = `Congratulations, ${playerName}! You've completed the entire journey! The letter from 1800 is yours to discover!`;
+        message = `Congratulations, ${playerName}! You've completed the entire journey! The letter left behind is yours to discover!`;
     } else if (progress < 0.3) {
         const messages = [
             `Well done, ${playerName}! You're making excellent progress. Keep up the momentum!`,

@@ -385,6 +385,7 @@ class GameEngine {
         this.totalPauseTime = stateData.totalPauseTime || 0;
         this.playerName = stateData.playerName || '';
         this.groupMembers = stateData.groupMembers || [];
+        this.individualPlayerName = stateData.individualPlayerName || null; // Restore individual player name for Archibald references
         this.completedLocations = stateData.completedLocations || [];
         
         // Restore Sets
