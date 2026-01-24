@@ -521,14 +521,35 @@ async function startGameplay() {
     showCharacterPopup(randomWelcome, null, false, true);
 }
 
+// Generate dashes based on answer length
+function generateAnswerDashes(answer) {
+    if (!answer) return '';
+    // Split by spaces to handle multiple words
+    const words = answer.split(' ');
+    return words.map(word => '_'.repeat(word.length)).join(' ');
+}
+
 // Load current location data
 function loadCurrentLocation() {
     const location = gameEngine.getCurrentLocation();
     if (!location) return;
     
-    // Update location stage indicator
-    updateLocationStageIndicator();
+    // Check if this is location 4 and show Archibald message about secret message BEFORE showing clue
+    if (location.id === 4) {
+        const secretMessage = "A secret message is being sent to you! Read the message carefully and try to reach that location before the message is lost forever. The message will be destroyed as no one else should read it. Time is of the essence!";
+        showCharacterPopupWithCallback(secretMessage, null, false, true, () => {
+            // After popup closes, continue with normal clue display
+            displayClueForLocation(location);
+        });
+        return; // Don't show clue yet, wait for popup to close
+    }
     
+    // Normal flow for other locations
+    displayClueForLocation(location);
+}
+
+// Display clue for a location (separated for reuse)
+function displayClueForLocation(location) {
     // Apply fade-in animation to clue section
     const clueSection = document.getElementById('clue-section');
     clueSection.classList.add('fade-in');
@@ -538,6 +559,12 @@ function loadCurrentLocation() {
     
     // Update clue
     document.getElementById('clue-text').textContent = location.clue;
+    
+    // Update clue dashes based on location name answer
+    const clueDashes = document.getElementById('clue-dashes');
+    if (clueDashes) {
+        clueDashes.textContent = generateAnswerDashes(location.locationName);
+    }
     
     // Show clue section with location name input
     document.getElementById('clue-section').style.display = 'block';
@@ -574,6 +601,35 @@ function loadCurrentLocation() {
     
     // Update locations panel
     updateLocationsPanel();
+    
+    // Set up encouragement timer for this location (10 minutes)
+    setupEncouragementTimer(location);
+}
+
+// Set up timer to show encouragement message after 10 minutes if answer not found
+let encouragementTimer = null;
+function setupEncouragementTimer(location) {
+    // Clear any existing timer
+    if (encouragementTimer) {
+        clearTimeout(encouragementTimer);
+        encouragementTimer = null;
+    }
+    
+    // Set timer for 10 minutes (600000 ms)
+    encouragementTimer = setTimeout(() => {
+        // Check if location is still current and answer hasn't been submitted
+        const currentLocation = gameEngine.getCurrentLocation();
+        if (currentLocation && currentLocation.id === location.id) {
+            const encouragementMessages = [
+                "Keep going! You're on the right track. Sometimes the answer is closer than you think.",
+                "Don't give up! Every great explorer faces challenges. Take a deep breath and look at the clues again.",
+                "You've got this! Remember, hints are available if you need them. The journey is worth it!",
+                "Stay focused! The answer is waiting for you. Trust your instincts and keep exploring."
+            ];
+            const randomMessage = encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)];
+            showCharacterPopup(randomMessage, null, false, true);
+        }
+    }, 600000); // 10 minutes
 }
 
 // Handle location name submission
@@ -618,7 +674,6 @@ function handleSubmitLocationName() {
             
             // Show location confirmation (no animation - keep static)
             document.getElementById('location-name').textContent = location.locationName || location.name;
-            document.getElementById('location-description').textContent = location.description;
             const locationInfoSection = document.getElementById('location-info-section');
             locationInfoSection.style.display = 'block';
             // Remove scroll-reveal class to keep it static
@@ -646,6 +701,12 @@ function showQuestionSection() {
     document.getElementById('question-text').textContent = location.question;
     document.getElementById('answer-input').value = '';
     document.getElementById('answer-input').classList.remove('error', 'success');
+    
+    // Update question dashes based on correct answer
+    const questionDashes = document.getElementById('question-dashes');
+    if (questionDashes && location.correctAnswer) {
+        questionDashes.textContent = generateAnswerDashes(location.correctAnswer);
+    }
     
     // Clear any error messages from previous question
     const answerError = document.getElementById('answer-input-error');
@@ -684,6 +745,12 @@ function submitAnswer() {
     
     if (result) {
         if (result.correct) {
+            // Clear encouragement timer since answer was found
+            if (encouragementTimer) {
+                clearTimeout(encouragementTimer);
+                encouragementTimer = null;
+            }
+            
             answerInput.classList.remove('error');
             answerInput.classList.add('success');
             if (errorContainer) errorContainer.remove();
@@ -779,7 +846,7 @@ async function showMapHint() {
             "The way becomes clearer with a map. Here's your route..."
         ];
         const randomMessage = hintMessages[Math.floor(Math.random() * hintMessages.length)];
-        showCharacterPopup(randomMessage, hintData.text, true, false);
+        showCharacterPopupWithMap(randomMessage, hintData.mapUrl, false);
         updateScoreDisplay(gameEngine.getScore());
         resetHintButtons();
         // Save state after using hint
@@ -1724,6 +1791,7 @@ function showCharacterPopupWithCallback(message, hintText, isMapHint, isMotivati
     const hintContent = document.getElementById('character-hint-content');
     const hintTextElement = document.getElementById('character-hint-text');
     const mapHintContainer = document.getElementById('character-map-hint-container');
+    const mapIframe = document.getElementById('character-map-iframe');
     
     popupText.textContent = message;
     
@@ -1733,6 +1801,10 @@ function showCharacterPopupWithCallback(message, hintText, isMapHint, isMotivati
         
         if (isMapHint) {
             mapHintContainer.style.display = 'block';
+            if (mapIframe && hintText.startsWith('http')) {
+                // If hintText is actually a map URL
+                mapIframe.src = hintText;
+            }
         } else {
             mapHintContainer.style.display = 'none';
         }
@@ -1742,6 +1814,30 @@ function showCharacterPopupWithCallback(message, hintText, isMapHint, isMotivati
     
     // Store callback
     characterPopupCallback = callback;
+    
+    document.getElementById('character-popup-modal').classList.add('active');
+}
+
+// Show character popup with map (for map hints)
+function showCharacterPopupWithMap(message, mapUrl, isMotivational) {
+    const popupText = document.getElementById('character-popup-text');
+    const hintContent = document.getElementById('character-hint-content');
+    const hintTextElement = document.getElementById('character-hint-text');
+    const mapHintContainer = document.getElementById('character-map-hint-container');
+    const mapIframe = document.getElementById('character-map-iframe');
+    
+    popupText.textContent = message;
+    
+    if (mapUrl) {
+        hintContent.style.display = 'block';
+        hintTextElement.style.display = 'none'; // Hide text hint element for map hints
+        mapHintContainer.style.display = 'block';
+        if (mapIframe) {
+            mapIframe.src = mapUrl;
+        }
+    } else {
+        hintContent.style.display = 'none';
+    }
     
     document.getElementById('character-popup-modal').classList.add('active');
 }

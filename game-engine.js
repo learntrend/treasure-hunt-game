@@ -212,22 +212,12 @@ class GameEngine {
         
         // Allow multiple attempts - don't check if answer was already submitted
 
-        // Normalize input: remove wildcards and convert to lowercase
+        // Normalize input: remove wildcards, spaces, articles and convert to lowercase
         const normalizedInput = this.normalizeAnswer(answerText);
-        const variations = location.answerVariations || [];
         
-        // Check against all variations
+        // Check against the main correct answer only (after normalization)
         let isCorrect = false;
-        for (const variation of variations) {
-            const normalizedVariation = this.normalizeAnswer(variation);
-            if (normalizedInput === normalizedVariation) {
-                isCorrect = true;
-                break;
-            }
-        }
-        
-        // Also check against the main correct answer
-        if (!isCorrect && location.correctAnswer) {
+        if (location.correctAnswer) {
             const normalizedCorrectAnswer = this.normalizeAnswer(location.correctAnswer);
             if (normalizedInput === normalizedCorrectAnswer) {
                 isCorrect = true;
@@ -299,7 +289,7 @@ class GameEngine {
         }
         
         return {
-            text: location.mapHint,
+            mapUrl: location.mapHint, // Google Maps embed URL
             locationName: location.name
         };
     }
