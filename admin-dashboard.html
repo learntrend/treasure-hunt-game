@@ -387,7 +387,9 @@
             container.innerHTML = '<div class="loading">Loading...</div>';
 
             try {
+                // Only load sessions with 'active' status (exclude 'pending', 'completed', 'abandoned')
                 const snapshot = await localDb.collection('gameSessions')
+                    .where('gameStatus', '==', 'active')
                     .orderBy('updatedAt', 'desc')
                     .get();
 
