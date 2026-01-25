@@ -265,6 +265,16 @@
     </style>
 </head>
 <body>
+    <!-- Support Links (Fixed) -->
+    <div class="support-links-fixed">
+        <a href="mailto:meghana.shettigar@gmail.com?subject=Issue with Letter Left Behind" class="support-email-link" title="Email Support">
+            📧 Email Support
+        </a>
+        <a href="tel:+447435672248" class="support-phone-link" title="Call Support">
+            📞 Call Support
+        </a>
+    </div>
+
     <div class="booking-container">
         <div class="booking-header">
             <div class="time-machine-icon" style="text-align: center; margin-bottom: 20px;">
@@ -442,8 +452,8 @@
                 <button type="submit" class="btn-primary btn-sparkle" id="submit-booking-btn">
                     📅 Confirm Booking
                 </button>
-                <p style="margin-top: 15px; font-size: 0.9rem; color: #666;">
-                    By submitting this form, you agree to our terms and conditions.
+                <p style="margin-top: 15px; font-size: 0.9rem; color: #666; text-align: center;">
+                    By submitting this form, you agree to our <a href="privacy-policy.html" target="_blank" style="color: var(--accent-color);">Privacy Policy</a> and terms and conditions.
                 </p>
                 <p style="margin-top: 10px; font-size: 0.75rem; color: #999; line-height: 1.6; text-align: center; max-width: 600px; margin: 10px auto 0;">
                     <strong>Safety Notice:</strong> This game is designed to be played in a safe environment. Please play responsibly, be aware of your surroundings, follow all local laws and regulations, and exercise caution when navigating to locations. We are not responsible for any accidents, injuries, losses, or damages that may occur during gameplay. Participants play at their own risk.
@@ -459,11 +469,11 @@
             <p>We've sent a confirmation email to <strong id="confirmation-email"></strong></p>
             <p>You'll receive payment instructions shortly.</p>
             <div id="game-link" style="margin-top: 20px;"></div>
-            <p style="margin-top: 30px;">
+            <!--<p style="margin-top: 30px;">
                 <a href="index.html" class="btn-primary btn-sparkle" style="text-decoration: none; display: inline-block;">
                     Return to Game
                 </a>
-            </p>
+            </p> -->
         </div>
     </div>
 
@@ -474,9 +484,6 @@
     <!-- Firebase Configuration -->
     <script src="firebase-config.js"></script>
     <script src="database.js"></script>
-    
-    <!-- EmailJS SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     
     <!-- EmailJS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
