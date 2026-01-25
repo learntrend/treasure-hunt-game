@@ -910,15 +910,37 @@ async function showTextHint() {
 async function showMapHint() {
     const hintData = gameEngine.useMapHint();
     if (hintData) {
-        // Show character popup with map hint
-        const hintMessages = [
-            "Ah, you seek the path forward! Let me show you the way...",
-            "A map to guide your journey! Here's where you must go...",
-            "Excellent! Sometimes a visual guide is what's needed. Behold...",
-            "The way becomes clearer with a map. Here's your route..."
-        ];
-        const randomMessage = hintMessages[Math.floor(Math.random() * hintMessages.length)];
-        showCharacterPopupWithMap(randomMessage, hintData.mapUrl, false);
+        const location = gameEngine.getCurrentLocation();
+        
+        // If mapHint is null/empty, show clue-specific text hint instead
+        if (!hintData.mapUrl || !location.mapHint) {
+            // Show clue-specific text hint instead of map
+            const hintMessages = [
+                "Ah, you seek guidance! Let me point you in the right direction...",
+                "A helpful clue to guide your journey! Here's what you need to know...",
+                "Excellent! Sometimes a different perspective is what's needed. Behold...",
+                "The way becomes clearer with this guidance. Here's your hint..."
+            ];
+            const randomMessage = hintMessages[Math.floor(Math.random() * hintMessages.length)];
+            
+            // For location 2, use the clue-specific hint
+            let clueHint = null;
+            if (location.id === 2) {
+                clueHint = "Go to level above, find a sculpture made by Peter Laslo Peri, named: The Sunbathers";
+            }
+            
+            showCharacterPopup(randomMessage, clueHint || location.textHint, false, false);
+        } else {
+            // Show character popup with map hint
+            const hintMessages = [
+                "Ah, you seek the path forward! Let me show you the way...",
+                "A map to guide your journey! Here's where you must go...",
+                "Excellent! Sometimes a visual guide is what's needed. Behold...",
+                "The way becomes clearer with a map. Here's your route..."
+            ];
+            const randomMessage = hintMessages[Math.floor(Math.random() * hintMessages.length)];
+            showCharacterPopupWithMap(randomMessage, hintData.mapUrl, false);
+        }
         updateScoreDisplay(gameEngine.getScore());
         resetHintButtons();
         // Save state after using hint
