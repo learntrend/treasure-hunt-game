@@ -559,20 +559,56 @@ function displayClueForLocation(location) {
         clueSection.classList.remove('fade-in');
     }, 1000);
     
+    // Update clue section header for location 10 (Final clue)
+    const clueHeader = document.querySelector('#clue-section .section-header h3');
+    if (clueHeader) {
+        if (location.id === 10) {
+            clueHeader.textContent = '🔍 Final Clue';
+        } else {
+            clueHeader.textContent = '🔍 Your Clue';
+        }
+    }
+    
     // Update clue
     document.getElementById('clue-text').textContent = location.clue;
     
-    // Update clue dashes based on location name answer
+    // Update clue dashes - for location 10, use correctAnswer instead of locationName
     const clueDashes = document.getElementById('clue-dashes');
     if (clueDashes) {
-        clueDashes.textContent = generateAnswerDashes(location.locationName);
+        if (location.id === 10) {
+            clueDashes.textContent = generateAnswerDashes(location.correctAnswer);
+        } else {
+            clueDashes.textContent = generateAnswerDashes(location.locationName);
+        }
     }
     
     // Show clue section with location name input
     document.getElementById('clue-section').style.display = 'block';
     document.getElementById('location-name-input-container').style.display = 'block';
-    document.getElementById('location-name-input').value = '';
-    document.getElementById('location-name-input').classList.remove('error', 'success');
+    
+    // Update input label and placeholder for location 10
+    const locationInputLabel = document.querySelector('#location-name-input-container label');
+    const locationInput = document.getElementById('location-name-input');
+    if (location.id === 10) {
+        if (locationInputLabel) {
+            locationInputLabel.textContent = 'Enter your answer:';
+        }
+        if (locationInput) {
+            locationInput.placeholder = 'Type your answer here...';
+        }
+    } else {
+        if (locationInputLabel) {
+            locationInputLabel.textContent = 'Enter the location name:';
+        }
+        if (locationInput) {
+            locationInput.placeholder = 'Type the location name here...';
+        }
+    }
+    
+    if (locationInput) {
+        locationInput.value = '';
+        locationInput.classList.remove('error', 'success');
+    }
     
     // Clear any error messages from previous location
     const locationError = document.getElementById('location-name-input-error');
@@ -637,28 +673,62 @@ function setupEncouragementTimer(location) {
 // Handle location name submission
 function handleSubmitLocationName() {
     const locationNameInput = document.getElementById('location-name-input');
-    const locationName = locationNameInput.value.trim();
+    const answerText = locationNameInput.value.trim();
     const errorContainer = document.getElementById('location-name-error');
+    const location = gameEngine.getCurrentLocation();
     
     // Clear previous error
     if (errorContainer) {
         errorContainer.remove();
     }
     
-    if (!locationName) {
-        showInputError(locationNameInput, 'Please enter a location name.');
+    if (!answerText) {
+        showInputError(locationNameInput, location.id === 10 ? 'Please enter your answer.' : 'Please enter a location name.');
         return;
     }
     
-    const result = gameEngine.submitLocationName(locationName);
+    // For location 10, validate against correctAnswer instead of locationName
+    let result;
+    if (location.id === 10) {
+        // Check answer directly against correctAnswer
+        const normalizedInput = gameEngine.normalizeAnswer(answerText);
+        const normalizedCorrect = gameEngine.normalizeAnswer(location.correctAnswer);
+        result = { correct: normalizedInput === normalizedCorrect };
+    } else {
+        // Normal location name validation
+        result = gameEngine.submitLocationName(answerText);
+    }
     
     if (result && result.correct) {
         locationNameInput.classList.remove('error');
         locationNameInput.classList.add('success');
         if (errorContainer) errorContainer.remove();
         
-        // Show motivational message from character
-        const location = gameEngine.getCurrentLocation();
+        // For location 10, go directly to final letter
+        if (location.id === 10) {
+            // Mark location as completed
+            if (!gameEngine.answersSubmitted.has(location.id)) {
+                gameEngine.answersSubmitted.add(location.id);
+                gameEngine.completedLocations.push({
+                    id: location.id,
+                    name: location.locationName || location.name,
+                    answer: location.correctAnswer
+                });
+                gameEngine.addScore(100);
+            }
+            
+            // Save game state
+            saveGameState();
+            
+            // Show final message and go to final screen
+            const finalMessage = "Magnificent! You've solved the final puzzle! The letter left behind from 1800 is now yours to discover.";
+            showCharacterPopupWithCallback(finalMessage, null, false, true, () => {
+                showFinalScreen();
+            });
+            return;
+        }
+        
+        // Show motivational message from character for normal locations
         const locationMessages = [
             `Excellent work! You've found ${location.locationName || location.name}. Well done!`,
             `Splendid! ${location.locationName || location.name} is indeed the correct location.`,
@@ -691,7 +761,7 @@ function handleSubmitLocationName() {
         // Show character popup with callback
         showCharacterPopupWithCallback(randomMessage, null, false, true, continueAfterPopup);
     } else {
-        showInputError(locationNameInput, 'Incorrect location. Try again!');
+        showInputError(locationNameInput, location.id === 10 ? 'Incorrect answer. Try again!' : 'Incorrect location. Try again!');
     }
 }
 

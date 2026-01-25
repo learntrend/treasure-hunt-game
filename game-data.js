@@ -17,10 +17,10 @@ const gameData = {
             name: "Location 1: Waterloo Clock",
             locationName: "Waterloo Clock",
             locationNameVariations: ["waterloo clock", "clock", "the waterloo clock"],
-            mapHint: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2483.1234567890!2d-0.1441!3d51.5034!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x487604d502c4b5b3%3A0x6b5a5b5b5b5b5b5b!2sWaterloo%20Station!5e0!3m2!1sen!2suk!4v1234567890123!5m2!1sen!2suk",
+            mapHint: "https://www.google.com/maps/embed?pb=!4v1769363363916!6m8!1m7!1sRMzv-N5FVCOLpPAxGn0opg!2m2!1d51.50322710450521!2d-0.1123464712873058!3f298.3047576250058!4f3.665911227972913!5f0.7820865974627469",
             question: "Time shows a picture of a journey long ago. On the mural made to celebrate 200 years of rail travel, find the child who is travelling through time.\nFrom which place did the child begin their journey?",
             correctAnswer: "Horsley",
-            textHint: "Stand where travellers first step inside. The picture greets you right at the beginning of the journey.",
+            textHint: "Stand where travellers first step inside (can be seen if you are under your location). The picture greets you right at the beginning of the journey.",
             titbits: "Waterloo Station is one of London's busiest railway stations, opened in 1848. The station's clock has been a landmark for travellers for over 170 years. The station was named after the Battle of Waterloo and has been featured in numerous films and literature. The mural celebrating 200 years of rail travel depicts scenes from railway history, including a child travelling through time."
         },
         {
@@ -32,12 +32,12 @@ const gameData = {
             mapHint: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2483.1234567890!2d-0.1441!3d51.5034!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x487604d502c4b5b3%3A0x6b5a5b5b5b5b5b5b!2sWaterloo%20Station!5e0!3m2!1sen!2suk!4v1234567890123!5m2!1sen!2suk",
             question: "Turn left and walk beside the stone story. Time has been stamped below a shining medal.\nIn which year was this memory placed to honour those lost in battle of Waterloo?",
             correctAnswer: "2015",
-            textHint: "Look carefully at the artwork. Count each figure you can see.",
+            textHint: "History whispers softly.\nLook closely beneath the medal — the year is hiding there.",
             titbits: "Waterloo Station features several memorials and artworks. The Waterloo Memorial commemorates those who lost their lives in the Battle of Waterloo. The station area contains various sculptures and installations that tell stories of history and travel. The memorial was placed in 2015 to mark the 200th anniversary of the Battle of Waterloo."
         },
         {
             id: 3,
-            clue: "Go back down to where you stood before, three travellers pause, carrying more. Their journey crossed the sea and time, this monument remembers their climb.\nWhat is this place called?",
+            clue: "Go back down to where you stood before, three travellers pause, carrying more. Their journey crossed the sea and time, this monument remembers their climb.\nWhat is this monument called?",
             name: "Location 3: National Windrush Monument",
             locationName: "National Windrush Monument",
             locationNameVariations: ["national windrush monument", "windrush monument", "the national windrush monument"],
@@ -61,14 +61,14 @@ const gameData = {
         },
         {
             id: 5,
-            clue: "Walk where feet cross the river, not by boat, not by train.\nI was named to celebrate a golden year, not for one person, but for a reign.\nI stand beside a wheel that sees the future, and near a clock that watches time begin.\nWhat am I?",
+            clue: "Walk where feet cross the river, not by boat, not by train.\nI was named to celebrate a GOLDEN year, not for one person, but for a reign.\nI stand beside a wheel that sees the future, and near a clock that watches time begin.\nWhat am I?",
             name: "Location 5: Golden Jubilee Bridge",
             locationName: "Golden Jubilee Bridge",
             locationNameVariations: ["golden jubilee bridge", "jubilee bridge", "the golden jubilee bridge"],
             mapHint: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2483.1234567890!2d-0.1441!3d51.5034!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x487604d502c4b5b3%3A0x6b5a5b5b5b5b5b5b!2sGolden%20Jubilee%20Bridge!5e0!3m2!1sen!2suk!4v1234567890123!5m2!1sen!2suk",
             question: "Before crossing time's river, a man stands tall who once was locked away.\nWho is the traveller who returned from prison to lead a nation?",
             correctAnswer: "Nelson Mandela",
-            textHint: "I am a pedestrian bridge named after a royal anniversary.",
+            textHint: "I fought against apartheid \nand became South Africa’s first president.",
             titbits: "The Golden Jubilee Bridges are two pedestrian bridges crossing the River Thames, opened in 2002 to celebrate Queen Elizabeth II's Golden Jubilee. The bridges connect the South Bank to the Embankment area. Nearby stands a statue of Nelson Mandela, the anti-apartheid leader who became South Africa's first black president. The bridges offer stunning views of the London Eye and the Houses of Parliament."
         },
         {
@@ -127,7 +127,7 @@ const gameData = {
             locationNameVariations: ["final destination", "the final destination"],
             mapHint: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2483.1234567890!2d-0.1441!3d51.5034!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x487604d502c4b5b3%3A0x6b5a5b5b5b5b5b5b!2sLondon!5e0!3m2!1sen!2suk!4v1234567890123!5m2!1sen!2suk",
             question: "What is the final word that reveals the letter left behind?",
-            correctAnswer: "(You form a word)", // This will be validated based on the puzzle logic
+            correctAnswer: "TIME TURNS NOW", // Final clue answer - goes directly to final letter
             textHint: "Use the first letters of locations and answers, then shift forward by the numbers shown.",
             titbits: "You have completed an incredible journey through time and space, following clues across London's historic landmarks. Each location told a story, each answer revealed a piece of the puzzle. The final destination represents the culmination of your adventure, where past and present meet, and the letter left behind from 1800 is finally revealed. This journey has connected you to history, to the stories of those who came before, and to the timeless messages that transcend centuries."
         }
