@@ -1800,15 +1800,18 @@ function showCharacterPopupWithCallback(message, hintText, isMapHint, isMotivati
     if (hintText) {
         hintContent.style.display = 'block';
         hintTextElement.textContent = hintText;
+        hintTextElement.style.display = 'block'; // Ensure hint text is visible
         
         if (isMapHint) {
             mapHintContainer.style.display = 'block';
+            hintTextElement.style.display = 'none'; // Hide text hint when showing map
             if (mapIframe && hintText.startsWith('http')) {
                 // If hintText is actually a map URL
                 mapIframe.src = hintText;
             }
         } else {
             mapHintContainer.style.display = 'none';
+            hintTextElement.style.display = 'block'; // Show text hint when not a map hint
         }
     } else {
         hintContent.style.display = 'none';
