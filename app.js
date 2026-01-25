@@ -527,8 +527,8 @@ function generateAnswerDashes(answer) {
     // Split by spaces to handle multiple words
     const words = answer.split(' ');
     // Create separate dashes for each letter with spaces between them
-    // Use double space between words to differentiate from single space between letters
-    return words.map(word => word.split('').map(() => '_').join(' ')).join('  '); // Double space between words
+    // Use '/ ' between words to differentiate from single space between letters
+    return words.map(word => word.split('').map(() => '_').join(' ')).join(' / '); // '/ ' between words
 }
 
 // Load current location data
