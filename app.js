@@ -539,7 +539,8 @@ function generateAnswerDashes(answer) {
     const words = answer.split(' ');
     // Create separate dashes for each letter with spaces between them
     // Use '/ ' between words to differentiate from single space between letters
-    return words.map(word => word.split('').map(() => '_').join(' ')).join(' / '); // '/ ' between words
+    // Show apostrophes as apostrophes instead of dashes
+    return words.map(word => word.split('').map(char => char === "'" ? "'" : '_').join(' ')).join(' / '); // '/ ' between words
 }
 
 // Load current location data
@@ -1009,41 +1010,53 @@ function closeTitbits() {
 // Fetch personal message from database/API
 async function fetchPersonalMessage() {
     try {
+        // Get player name for the default opening
+        const recipient = gameEngine.groupMembers.length > 0 ? gameEngine.groupMembers[0] : gameEngine.playerName;
+        const defaultOpening = `Dear ${recipient},\n\nIn the year 1800, this message was written but never delivered. Through time and space, it has found its way to you.`;
+        
         // Try to get personal message from booking/game session
+        let personalizedMessage = null;
+        let messageFrom = null;
+        
         if (gameEngine.bookingId && window.DatabaseService) {
             const sessionId = getSessionId();
             if (sessionId) {
                 const sessionData = await window.DatabaseService.loadGameStateBySessionId(sessionId);
-                if (sessionData && sessionData.personalMessage) {
-                    // Build message with "From" if available
-                    let message = sessionData.personalMessage;
-                    if (sessionData.messageFrom) {
-                        message = `From ${sessionData.messageFrom},\n\n${message}`;
-                    }
-                    return message;
+                if (sessionData && sessionData.personalMessage && sessionData.personalMessage.trim()) {
+                    personalizedMessage = sessionData.personalMessage;
+                    messageFrom = sessionData.messageFrom;
                 }
             }
             
-            // Try to get from booking document
-            // Get db reference from DatabaseService or firebase
-            const dbRef = window.DatabaseService.db || (typeof firebase !== 'undefined' && firebase.firestore ? firebase.firestore() : null);
-            if (dbRef) {
-                const bookingDoc = await dbRef.collection('bookings').doc(gameEngine.bookingId).get();
-                const docExists = typeof bookingDoc.exists === 'function' ? bookingDoc.exists() : bookingDoc.exists;
-                if (docExists) {
-                    const bookingData = bookingDoc.data();
-                    if (bookingData && bookingData.personalMessage && bookingData.personalMessage.trim()) {
-                        let message = bookingData.personalMessage;
-                        if (bookingData.messageFrom && bookingData.messageFrom.trim()) {
-                            message = `From ${bookingData.messageFrom},\n\n${message}`;
+            // Try to get from booking document if not found in session
+            if (!personalizedMessage) {
+                const dbRef = window.DatabaseService.db || (typeof firebase !== 'undefined' && firebase.firestore ? firebase.firestore() : null);
+                if (dbRef) {
+                    const bookingDoc = await dbRef.collection('bookings').doc(gameEngine.bookingId).get();
+                    const docExists = typeof bookingDoc.exists === 'function' ? bookingDoc.exists() : bookingDoc.exists;
+                    if (docExists) {
+                        const bookingData = bookingDoc.data();
+                        if (bookingData && bookingData.personalMessage && bookingData.personalMessage.trim()) {
+                            personalizedMessage = bookingData.personalMessage;
+                            messageFrom = bookingData.messageFrom;
                         }
-                        return message;
                     }
                 }
             }
         }
         
-        // Fallback to default message
+        // If personalized message exists, combine with default opening
+        if (personalizedMessage) {
+            let fullMessage = defaultOpening;
+            if (messageFrom && messageFrom.trim()) {
+                fullMessage += `\n\nFrom ${messageFrom},\n\n${personalizedMessage}`;
+            } else {
+                fullMessage += `\n\n${personalizedMessage}`;
+            }
+            return fullMessage;
+        }
+        
+        // Fallback to default message if no personalized message
         return getDefaultMessage();
     } catch (error) {
         console.error('Error fetching personal message:', error);

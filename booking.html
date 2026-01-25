@@ -299,15 +299,8 @@
                 <div class="form-group">
                     <label for="email">Your Email Address <span class="required">*</span></label>
                     <input type="email" id="email" name="email" placeholder="your.email@example.com" required>
-                    <small>We'll send your booking confirmation here</small>
+                    <small>We'll send your booking confirmation and game link here</small>
                     <div class="error-message" id="email-error"></div>
-                </div>
-
-                <div class="form-group">
-                    <label for="recipient-email">Recipient Email Address <span class="required">*</span></label>
-                    <input type="email" id="recipient-email" name="recipient-email" placeholder="recipient@example.com" required>
-                    <small>Game link will be sent to this email address</small>
-                    <div class="error-message" id="recipient-email-error"></div>
                 </div>
 
                 <div class="form-row">
@@ -381,7 +374,7 @@
                 
                 <div class="form-group">
                     <label for="personal-message">Message for Final Letter</label>
-                    <textarea id="personal-message" name="personal-message" placeholder="Write a special message that will be revealed at the end of the game. This could be a message for your team, a special note, or anything you'd like to say..."></textarea>
+                    <textarea id="personal-message" name="personal-message" placeholder="Write a special message that will be revealed at the end of the game. Do not include 'Dear ---' as it will be automatically added. This could be a message for your team, a special note, or anything you'd like to say..."></textarea>
                     <small>Optional: This message will appear in the final letter when the game is completed.</small>
                     <div class="error-message" id="personal-message-error"></div>
                 </div>
@@ -957,7 +950,6 @@
             
             const formData = {
                 email: document.getElementById('email').value.trim(),
-                recipientEmail: document.getElementById('recipient-email').value.trim(),
                 name: document.getElementById('name').value.trim(),
                 phone: document.getElementById('phone').value.trim(),
                 date: document.getElementById('date').value,
@@ -1146,9 +1138,9 @@
                                 updatedAt: firebase.firestore.Timestamp.now()
                             });
                             
-                            // Send email to recipient with game link
+                            // Send email to user with game link
                             try {
-                                await sendGameLinkEmail(formData.recipientEmail, gameLink, formData);
+                                await sendGameLinkEmail(formData.email, gameLink, formData);
                             } catch (emailError) {
                                 console.error('Error sending email:', emailError);
                                 // Don't fail the booking if email fails
@@ -1230,6 +1222,10 @@
                     // The template uses {{game_link}} and {{from_name}} in the body
                     // We need to send only the variables that exist in the template
                     const fromName = formData.messageFrom || formData.name || 'Treasure Hunt Team';
+                    const numPlayers = parseInt(formData.players) || 1;
+                    
+                    // Build forwarding instructions text
+                    const forwardingInstructions = `\n\n📧 IMPORTANT: Please forward this email to everyone who will be playing the game.\n\n📱 Number of Screens: You can open this game link on up to ${numPlayers} screen(s) based on the number of participants you booked. If you try to open the game on more screens than the number of participants, you may experience glitches or errors.\n\n💡 Tip: Each player should use the same game link, but only ${numPlayers} screen(s) can be active at the same time.`;
                     
                     // Build personal message section if provided
                     let personalMessageSection = '';
@@ -1239,13 +1235,15 @@
                     
                     // Template parameters - only include variables that exist in your EmailJS template
                     // Based on your template, it has: {{subject}}, {{game_link}}, {{from_name}}, {{to_email}}, {{from_email}}
-                    // NOTE: To include personal message, add {{personal_message}} to your EmailJS template
+                    // NOTE: To include personal message and forwarding instructions, add {{personal_message}} and {{forwarding_instructions}} to your EmailJS template
                     const templateParams = {
                         to_email: recipientEmail,
                         from_email: 'meghana.shettigar@gmail.com',
                         from_name: fromName,
                         subject: 'Your Treasure Hunt Game Link!',
-                        game_link: gameLink
+                        game_link: gameLink,
+                        forwarding_instructions: forwardingInstructions,
+                        num_players: numPlayers.toString()
                     };
                     
                     // Add personal_message if template supports it (uncomment after adding {{personal_message}} to template)
@@ -1269,7 +1267,8 @@
                     }
                 } else {
                     // Fallback: Log email details (for development/testing)
-                    let emailBody = `Hi there!\n\nYou've been invited to play a treasure hunt game!\n\nClick this link to start playing: ${gameLink}\n\nThe game will be available 15 minutes before your scheduled time (${formData.date} at ${formData.time}).\n\nHave fun and enjoy the adventure!\n\nBest regards,\n${formData.name || 'Treasure Hunt Team'}`;
+                    const numPlayers = parseInt(formData.players) || 1;
+                    let emailBody = `Hi there!\n\nYou've been invited to play a treasure hunt game!\n\nClick this link to start playing: ${gameLink}\n\nThe game will be available 15 minutes before your scheduled time (${formData.date} at ${formData.time}).\n\n📧 IMPORTANT: Please forward this email to everyone who will be playing the game.\n\n📱 Number of Screens: You can open this game link on up to ${numPlayers} screen(s) based on the number of participants you booked. If you try to open the game on more screens than the number of participants, you may experience glitches or errors.\n\n💡 Tip: Each player should use the same game link, but only ${numPlayers} screen(s) can be active at the same time.\n\nHave fun and enjoy the adventure!\n\nBest regards,\n${formData.name || 'Treasure Hunt Team'}`;
                     
                     if (formData.personalMessage) {
                         const fromName = formData.messageFrom || formData.name || 'Someone special';

@@ -113,7 +113,7 @@ const gameData = {
             name: "Location 9: King Charles I",
             locationName: "King Charles I",
             locationNameVariations: ["king charles i", "king charles", "charles i", "statue of king charles i"],
-            mapHint: "https://www.google.com/maps/embed?pb=!4v1769367121331!6m8!1m7!1sVqMMJRBO8_ICJDFtoxff2g!2m2!1d51.50771717045196!2d-0.1275985731589382!3f348.6476903361844!4f-1.5751135114300183!5f0.7820865974627469",
+            mapHint: "https://www.google.com/maps/embed?pb=!4v1769370543722!6m8!1m7!1soPheZ1GvHp0Kor-97p5qWw!2m2!1d51.50722965825501!2d-0.1276621886261673!3f355.37288315890896!4f0!5f0.7820865974627469",
             question: "Before this rider claimed the spot, another memory stood here first.\nWhat did the king replace?",
             correctAnswer: "Queen Eleanor's Cross",
             textHint: "Look down — history rests beneath your feet.",
