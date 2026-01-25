@@ -2,8 +2,8 @@
 
 const gameData = {
     startingLocation: {
-        name: "Victoria Station",
-        address: "Victoria Station, London SW1V 1JT",
+        name: "Waterloo Station",
+        address: "Waterloo Station, London SE1 8SW",
         coordinates: {
             lat: 51.4952,
             lng: -0.1441
@@ -57,7 +57,7 @@ const gameData = {
             mapHint: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2483.1234567890!2d-0.1441!3d51.5034!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x487604d502c4b5b3%3A0x6b5a5b5b5b5b5b5b!2sWaterloo%20Station!5e0!3m2!1sen!2suk!4v1234567890123!5m2!1sen!2suk",
             question: "At the great entrance of journeys and time, a word hides between two ancient lands.\nWhat place sits between France and Egypt?",
             correctAnswer: "Mesopotamia",
-            titbits: "Victoria Station's main entrance is a grand Victorian structure that has welcomed millions of travellers. The station was designed by architects and opened in 1860. The entrance area contains various historical references and architectural details. Mesopotamia, meaning 'land between two rivers' in Greek, refers to the ancient region between the Tigris and Euphrates rivers, located between modern-day France (via historical connections) and Egypt."
+            titbits: "Waterloo Station's main entrance is a grand Victorian structure that has welcomed millions of travellers. The station was designed by architects and opened in 1848. The entrance area contains various historical references and architectural details. Mesopotamia, meaning 'land between two rivers' in Greek, refers to the ancient region between the Tigris and Euphrates rivers, located between modern-day France (via historical connections) and Egypt."
         },
         {
             id: 5,
