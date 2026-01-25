@@ -125,9 +125,8 @@ function gameStateToDB(gameEngine, playerType, bookingId = null) {
     if (gameEngine.bookingTime) {
         state.bookingTime = gameEngine.bookingTime;
     }
-    if (gameEngine.gameStatus) {
-        state.gameStatus = gameEngine.gameStatus;
-    }
+    // Set gameStatus - default to 'active' if not set (for non-booking games)
+    state.gameStatus = gameEngine.gameStatus || 'active';
     if (gameEngine.lastPlayedAt) {
         state.lastPlayedAt = firebase.firestore.Timestamp.fromMillis(gameEngine.lastPlayedAt);
     }

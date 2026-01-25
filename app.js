@@ -360,9 +360,15 @@ async function startGame() {
         }
     } else {
         // Non-booking game (for testing/development)
-        // Clear any previous game session
-        if (window.DatabaseService) {
-            await window.DatabaseService.deleteGameSession();
+        // Create a new game session for non-booking games
+        if (window.DatabaseService && window.DatabaseService.isInitialized()) {
+            // Generate a new session ID for non-booking games
+            const sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            if (window.DatabaseService.setSessionId) {
+                window.DatabaseService.setSessionId(sessionId);
+            }
+            // Set game status to active for non-booking games
+            gameEngine.gameStatus = 'active';
         }
     }
     
@@ -507,6 +513,11 @@ async function fetchAllPlayerNamesForBooking(bookingId, teamName, currentPlayerN
 async function startGameplay() {
     // Use actual player name (individual player name, not team name or booking name)
     const actualPlayerName = gameEngine.individualPlayerName || gameEngine.playerName;
+    
+    // Ensure game status is set to 'active' when gameplay starts (for non-booking games)
+    if (!gameEngine.gameStatus || gameEngine.gameStatus === 'pending') {
+        gameEngine.gameStatus = 'active';
+    }
     
     // Show welcome message from character
     const welcomeMessages = [

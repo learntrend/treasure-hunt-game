@@ -85,7 +85,7 @@ const gameData = {
         },
         {
             id: 7,
-            clue: "Time remembers those who never returned. Before travelling onward, honour the names of those who fell in action or died of wounds and disease.\nFrom the memorial, collect letters exactly as follows:\n• First and second letter of the 6th name in the second column\n• First and second letter of the 6th name in the first column\n• Second and third letter of the 2nd name in the fourth column\n• 7th and 8th letter of the 5th name in the second column\n\nAdd a space, then add an x\nWhere does this spell take you?",
+            clue: "Time remembers those who never returned. Before travelling onward, honour the names of those who fell in action or died of wounds and disease.\nFrom the memorial, collect letters exactly as follows:\n• First and second letter of the 6th name in the second column\n• First and second letter of the 6th name in the first column\n• Sixth, seventh and eighth letter of the 5th name in the second column\n\nAdd a space, then add an x\nWhere does this spell take you?",
             name: "Location 7: Charing Cross",
             locationName: "Charing Cross",
             locationNameVariations: ["charing cross", "charing cross station"],
