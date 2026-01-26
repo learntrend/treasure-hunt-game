@@ -669,6 +669,11 @@ function displayClueForLocation(location) {
 // Set up timer to show encouragement message after 10 minutes if answer not found
 let encouragementTimer = null;
 function setupEncouragementTimer(location) {
+    // Don't set up encouragement timer if game is completed or on final screen
+    if (gameEngine.gameStatus === 'completed') {
+        return;
+    }
+    
     // Clear any existing timer
     if (encouragementTimer) {
         clearTimeout(encouragementTimer);
@@ -677,6 +682,16 @@ function setupEncouragementTimer(location) {
     
     // Set timer for 10 minutes (600000 ms)
     encouragementTimer = setTimeout(() => {
+        // Check again if we're on final screen before showing message
+        const finalScreen = document.getElementById('final-screen');
+        if (finalScreen && finalScreen.classList.contains('active')) {
+            return; // Don't show encouragement if on final screen
+        }
+        
+        if (gameEngine.gameStatus === 'completed') {
+            return; // Don't show encouragement if game is completed
+        }
+        
         // Check if location is still current and answer hasn't been submitted
         const currentLocation = gameEngine.getCurrentLocation();
         if (currentLocation && currentLocation.id === location.id) {
@@ -1085,6 +1100,12 @@ function getDefaultMessage() {
 async function showFinalScreen() {
     // Stop timer
     gameEngine.stopTimer();
+    
+    // Clear any active encouragement timer to prevent Archibald messages on final screen
+    if (encouragementTimer) {
+        clearTimeout(encouragementTimer);
+        encouragementTimer = null;
+    }
     
     // Update game status to completed
     if (window.DatabaseService && window.DatabaseService.isInitialized() && gameEngine.bookingId) {
@@ -1908,6 +1929,12 @@ function closeCharacterIntro() {
 
 // Show character popup (for hints and messages)
 function showCharacterPopup(message, hintText, isMapHint, isMotivational) {
+    // Don't show Archibald messages if we're on the final screen
+    const finalScreen = document.getElementById('final-screen');
+    if (finalScreen && finalScreen.classList.contains('active')) {
+        return; // Exit early if final screen is active
+    }
+    
     showCharacterPopupWithCallback(message, hintText, isMapHint, isMotivational, null);
 }
 
@@ -1915,6 +1942,12 @@ function showCharacterPopup(message, hintText, isMapHint, isMotivational) {
 let characterPopupCallback = null;
 
 function showCharacterPopupWithCallback(message, hintText, isMapHint, isMotivational, callback) {
+    // Don't show Archibald messages if we're on the final screen
+    const finalScreen = document.getElementById('final-screen');
+    if (finalScreen && finalScreen.classList.contains('active')) {
+        return; // Exit early if final screen is active
+    }
+    
     const popupText = document.getElementById('character-popup-text');
     const hintContent = document.getElementById('character-hint-content');
     const hintTextElement = document.getElementById('character-hint-text');
@@ -1951,6 +1984,12 @@ function showCharacterPopupWithCallback(message, hintText, isMapHint, isMotivati
 
 // Show character popup with map (for map hints)
 function showCharacterPopupWithMap(message, mapUrl, isMotivational) {
+    // Don't show Archibald messages if we're on the final screen
+    const finalScreen = document.getElementById('final-screen');
+    if (finalScreen && finalScreen.classList.contains('active')) {
+        return; // Exit early if final screen is active
+    }
+    
     const popupText = document.getElementById('character-popup-text');
     const hintContent = document.getElementById('character-hint-content');
     const hintTextElement = document.getElementById('character-hint-text');
