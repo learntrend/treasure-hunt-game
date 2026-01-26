@@ -686,17 +686,10 @@ async function createGameSessionFromBooking(bookingId, bookingData) {
     }
 
     try {
-        // Check if game session already exists for this booking
-        const existingSession = await db.collection('gameSessions')
-            .where('bookingId', '==', bookingId)
-            .limit(1)
-            .get();
-
-        if (!existingSession.empty) {
-            const existingDoc = existingSession.docs[0];
-            return existingDoc.id; // Return existing session ID
-        }
-
+        // Always create a NEW session for each player
+        // Multiple players can use the same booking link, but each gets their own session
+        // This allows each player to start from location 0 with their own timer
+        
         // Create new game session
         const sessionId = generateSessionId();
         setSessionId(sessionId);

@@ -234,14 +234,46 @@ async function checkBookingAccess() {
             gameEngine.bookingTime = gameSession.bookingTime;
             gameEngine.gameStatus = gameSession.gameStatus || 'pending';
             
-            // If game is already active, restore state
-            if (gameSession.gameStatus === 'active' && gameSession.currentLocationIndex > 0) {
-                const savedState = await window.DatabaseService.loadGameStateBySessionId(gameSession.id);
-                if (savedState) {
-                    gameEngine.restoreState(savedState);
-                    // Will be handled by checkForSavedGame
+            // Get booking data to auto-detect solo/group
+            try {
+                const dbRef = window.DatabaseService.db || (typeof firebase !== 'undefined' && firebase.firestore ? firebase.firestore() : null);
+                if (dbRef) {
+                    const bookingDoc = await dbRef.collection('bookings').doc(bookingId).get();
+                    const docExists = typeof bookingDoc.exists === 'function' ? bookingDoc.exists() : bookingDoc.exists;
+                    if (docExists) {
+                        const bookingData = bookingDoc.data();
+                        // Auto-set solo/group based on booking
+                        const numPlayers = parseInt(bookingData.players) || 1;
+                        const groupSizeEl = document.getElementById('group-size');
+                        const playerSetupLabel = document.querySelector('.player-setup label[for="group-size"]');
+                        
+                        if (groupSizeEl) {
+                            if (numPlayers > 1) {
+                                groupSizeEl.value = 'group';
+                                groupSizeEl.style.display = 'none'; // Hide selector
+                                if (playerSetupLabel) {
+                                    playerSetupLabel.textContent = 'Playing as: Group Adventure';
+                                    playerSetupLabel.style.marginBottom = '15px';
+                                }
+                            } else {
+                                groupSizeEl.value = 'solo';
+                                groupSizeEl.style.display = 'none'; // Hide selector
+                                if (playerSetupLabel) {
+                                    playerSetupLabel.textContent = 'Playing as: Solo Explorer';
+                                    playerSetupLabel.style.marginBottom = '15px';
+                                }
+                            }
+                            // Trigger change event to update UI
+                            groupSizeEl.dispatchEvent(new Event('change'));
+                        }
+                    }
                 }
+            } catch (error) {
+                console.error('Error getting booking data:', error);
             }
+            
+            // DO NOT restore state here - each player should start fresh
+            // State restoration only happens in checkForSavedGame() for the player's own session
         } else if (accessCheck.canAccess) {
             // Access is granted but no session found and couldn't create one
             console.warn('Access granted but no game session found for bookingId:', bookingId);
@@ -425,7 +457,29 @@ function startAfterTutorial() {
 
 // Start game from welcome screen
 async function startGame() {
-    const groupSize = document.getElementById('group-size').value;
+    const bookingId = getURLParameter('bookingId');
+    let groupSize = document.getElementById('group-size').value;
+    
+    // For booking-based games, auto-detect solo/group from booking data
+    if (bookingId && window.DatabaseService && window.DatabaseService.isInitialized()) {
+        try {
+            const dbRef = window.DatabaseService.db || (typeof firebase !== 'undefined' && firebase.firestore ? firebase.firestore() : null);
+            if (dbRef) {
+                const bookingDoc = await dbRef.collection('bookings').doc(bookingId).get();
+                const docExists = typeof bookingDoc.exists === 'function' ? bookingDoc.exists() : bookingDoc.exists;
+                if (docExists) {
+                    const bookingData = bookingDoc.data();
+                    const numPlayers = parseInt(bookingData.players) || 1;
+                    // Auto-set group size based on booking
+                    groupSize = numPlayers > 1 ? 'group' : 'solo';
+                }
+            }
+        } catch (error) {
+            console.error('Error getting booking data for group size:', error);
+            // Fall back to selected value
+        }
+    }
+    
     let playerName, teamName;
     
     if (groupSize === 'group') {
@@ -449,8 +503,6 @@ async function startGame() {
             return;
         }
     }
-    
-    const bookingId = getURLParameter('bookingId');
     let allPlayerNames = [playerName]; // Start with current player's name
     
     // If booking-based game, check access first
@@ -462,19 +514,50 @@ async function startGame() {
             return;
         }
         
-        // Get or create game session
-        const gameSession = accessCheck.gameSession;
-        if (gameSession) {
-            // Use existing session
-            gameEngine.bookingId = bookingId;
-            gameEngine.bookingDate = gameSession.bookingDate;
-            gameEngine.bookingTime = gameSession.bookingTime;
-            gameEngine.gameStatus = 'active';
-            
-            // Update game status to active
-            await window.DatabaseService.updateGameStatus(gameSession.id, 'active');
-        } else {
-            // Create new session from booking
+        // Get booking data to create a NEW session for this player
+        // Each player should get their own session, even with the same booking link
+        try {
+            const dbRef = window.DatabaseService.db || (typeof firebase !== 'undefined' && firebase.firestore ? firebase.firestore() : null);
+            if (dbRef) {
+                const bookingDoc = await dbRef.collection('bookings').doc(bookingId).get();
+                const docExists = typeof bookingDoc.exists === 'function' ? bookingDoc.exists() : bookingDoc.exists;
+                if (docExists) {
+                    const bookingData = bookingDoc.data();
+                    // Create a NEW session for this player (each player gets their own session)
+                    const sessionId = await window.DatabaseService.createGameSessionFromBooking(bookingId, bookingData);
+                    if (sessionId) {
+                        // Set the new session ID
+                        if (window.DatabaseService.setSessionId) {
+                            window.DatabaseService.setSessionId(sessionId);
+                        }
+                        // Get the newly created session
+                        const newAccessCheck = await window.DatabaseService.canAccessGame(bookingId, sessionId);
+                        const gameSession = newAccessCheck.gameSession;
+                        if (gameSession) {
+                            gameEngine.bookingId = bookingId;
+                            gameEngine.bookingDate = gameSession.bookingDate;
+                            gameEngine.bookingTime = gameSession.bookingTime;
+                            gameEngine.gameStatus = 'active';
+                        } else {
+                            gameEngine.bookingId = bookingId;
+                            gameEngine.gameStatus = 'active';
+                        }
+                    } else {
+                        // Fallback if session creation fails
+                        gameEngine.bookingId = bookingId;
+                        gameEngine.gameStatus = 'active';
+                    }
+                } else {
+                    gameEngine.bookingId = bookingId;
+                    gameEngine.gameStatus = 'active';
+                }
+            } else {
+                gameEngine.bookingId = bookingId;
+                gameEngine.gameStatus = 'active';
+            }
+        } catch (error) {
+            console.error('Error creating game session:', error);
+            // Fallback
             gameEngine.bookingId = bookingId;
             gameEngine.gameStatus = 'active';
         }
@@ -1701,15 +1784,38 @@ async function checkForSavedGame() {
     if (!window.DatabaseService) return;
     
     try {
-        const savedState = await window.DatabaseService.loadGameState();
-        if (savedState && savedState.currentLocationIndex > 0) {
-            // Ask user if they want to resume
-            const resume = confirm('We found a saved game. Would you like to resume where you left off?');
-            if (resume) {
-                resumeGame(savedState);
-            } else {
-                // Clear saved state if user doesn't want to resume
-                await window.DatabaseService.deleteGameSession();
+        // Only check for saved game if there's a booking ID and we're resuming the same player's session
+        const bookingId = getURLParameter('bookingId');
+        
+        // For booking-based games, only restore if it's the same player's session
+        // Each new player should start fresh from location 0
+        if (bookingId) {
+            // Check if this is the same session (same session ID in localStorage)
+            // If not, don't restore - let them start fresh
+            const savedState = await window.DatabaseService.loadGameState();
+            if (savedState && savedState.currentLocationIndex > 0 && savedState.bookingId === bookingId) {
+                // Same booking, same session - ask if they want to resume
+                const resume = confirm('We found a saved game. Would you like to resume where you left off?');
+                if (resume) {
+                    resumeGame(savedState);
+                } else {
+                    // Clear saved state if user doesn't want to resume
+                    await window.DatabaseService.deleteGameSession();
+                }
+            }
+            // If no saved state or different session, let them start fresh (don't restore)
+        } else {
+            // Non-booking game - check for saved state normally
+            const savedState = await window.DatabaseService.loadGameState();
+            if (savedState && savedState.currentLocationIndex > 0) {
+                // Ask user if they want to resume
+                const resume = confirm('We found a saved game. Would you like to resume where you left off?');
+                if (resume) {
+                    resumeGame(savedState);
+                } else {
+                    // Clear saved state if user doesn't want to resume
+                    await window.DatabaseService.deleteGameSession();
+                }
             }
         }
     } catch (error) {
