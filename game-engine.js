@@ -188,11 +188,19 @@ class GameEngine {
         }
     }
 
-    // Normalize string: remove wildcard characters, articles, spaces and convert to lowercase
+    // Normalize string: remove wildcard characters, articles, spaces, apostrophes and convert to lowercase
     normalizeAnswer(answerText) {
+        if (!answerText) return '';
+        
+        let normalized = answerText.toString();
+        
+        // Remove all apostrophe types (making apostrophes optional)
+        // Handle straight apostrophe, curly apostrophes (U+2018, U+2019), backticks, and acute accents
+        normalized = normalized.replace(/[''`´]/g, '');
+        
         // Remove wildcard characters: *, ?, [, ], {, }, ^, $, |, \, /, etc.
         const wildcardPattern = /[*?\[\]{}^$|\\\/]/g;
-        let normalized = answerText.trim().toLowerCase().replace(wildcardPattern, '');
+        normalized = normalized.trim().toLowerCase().replace(wildcardPattern, '');
         
         // Remove articles: "the", "a", "an" (as whole words)
         normalized = normalized.replace(/\b(the|a|an)\b/g, '');
@@ -219,6 +227,17 @@ class GameEngine {
         let isCorrect = false;
         if (location.correctAnswer) {
             const normalizedCorrectAnswer = this.normalizeAnswer(location.correctAnswer);
+            
+            // Debug logging for location 9 (Queen Eleanor's Cross)
+            if (location.id === 9) {
+                console.log('Location 9 Answer Check:');
+                console.log('  User input:', answerText);
+                console.log('  Normalized input:', normalizedInput);
+                console.log('  Correct answer:', location.correctAnswer);
+                console.log('  Normalized correct:', normalizedCorrectAnswer);
+                console.log('  Match:', normalizedInput === normalizedCorrectAnswer);
+            }
+            
             if (normalizedInput === normalizedCorrectAnswer) {
                 isCorrect = true;
             }

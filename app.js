@@ -1276,18 +1276,18 @@ async function fetchPersonalMessage() {
             }
         }
         
+        // Store messageFrom in gameEngine for signature use (even if no personalized message)
+        gameEngine.messageFrom = messageFrom;
+        
         // If personalized message exists, combine with default opening
         if (personalizedMessage) {
-            let fullMessage = defaultOpening;
-            if (messageFrom && messageFrom.trim()) {
-                fullMessage += `\n\nFrom ${messageFrom},\n\n${personalizedMessage}`;
-            } else {
-                fullMessage += `\n\n${personalizedMessage}`;
-            }
+            // Format: Dear name, blank line, default text, blank line, personalized message
+            let fullMessage = `Dear ${recipient},\n\nIn the year 1800, this message was written but never delivered. Through time and space, it has found its way to you.\n\n${personalizedMessage}`;
             return fullMessage;
         }
         
         // Fallback to default message if no personalized message
+        // Note: messageFrom is already stored in gameEngine.messageFrom for signature use
         return getDefaultMessage();
     } catch (error) {
         console.error('Error fetching personal message:', error);
@@ -1351,6 +1351,16 @@ async function showFinalScreen() {
     // Update final screen
     document.getElementById('final-time').textContent = stats.time;
     document.getElementById('final-score').textContent = stats.score;
+    
+    // Update signature based on messageFrom
+    const signatureElement = document.querySelector('.letter-signature p');
+    if (signatureElement) {
+        if (gameEngine.messageFrom && gameEngine.messageFrom.trim()) {
+            signatureElement.textContent = `— From ${gameEngine.messageFrom}`;
+        } else {
+            signatureElement.textContent = '— A message from the past';
+        }
+    }
     
     // Show final screen first
     showScreen('final-screen');
