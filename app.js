@@ -239,6 +239,16 @@ function setupEventListeners() {
         closeCharacterPopupXBtn.addEventListener('click', closeCharacterPopup);
     }
     
+    // Support popup
+    const helpSupportBtn = document.getElementById('help-support-btn');
+    if (helpSupportBtn) {
+        helpSupportBtn.addEventListener('click', showSupportPopup);
+    }
+    const closeSupportPopupBtn = document.getElementById('close-support-popup-btn');
+    if (closeSupportPopupBtn) {
+        closeSupportPopupBtn.addEventListener('click', closeSupportPopup);
+    }
+    
     // Setup rating buttons
     setupRatingButtons();
 }
@@ -1994,6 +2004,30 @@ async function closeCharacterPopup() {
         loadCurrentLocation();
     }
 }
+
+// Show support popup
+function showSupportPopup() {
+    const supportModal = document.getElementById('support-popup-modal');
+    if (supportModal) {
+        supportModal.classList.add('active');
+    }
+}
+
+// Close support popup
+function closeSupportPopup() {
+    const supportModal = document.getElementById('support-popup-modal');
+    if (supportModal) {
+        supportModal.classList.remove('active');
+    }
+}
+
+// Close support popup when clicking outside
+document.addEventListener('click', function(event) {
+    const supportModal = document.getElementById('support-popup-modal');
+    if (supportModal && event.target === supportModal) {
+        closeSupportPopup();
+    }
+});
 
 // Get motivational message based on progress
 function getMotivationalMessage(currentLocation, totalLocations) {
