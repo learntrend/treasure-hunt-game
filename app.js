@@ -601,6 +601,13 @@ async function startGame() {
     // Store individual player name for both solo and group games (needed for Archibald to reference the actual player)
     gameEngine.individualPlayerName = playerName;
     
+    // Store team name for group games (for admin dashboard)
+    if (groupSize === 'group') {
+        gameEngine.teamName = teamName;
+    } else {
+        gameEngine.teamName = null; // No team name for solo players
+    }
+    
     // For group games, fetch and update all player names
     if (groupSize === 'group' && bookingId && window.DatabaseService) {
         try {
@@ -1336,6 +1343,7 @@ async function showFinalScreen() {
         const completedGameData = {
             playerType: currentPlayerType,
             playerName: gameEngine.playerName,
+            teamName: gameEngine.teamName || null, // Store team name for group games
             groupMembers: gameEngine.groupMembers,
             score: stats.score,
             time: gameEngine.elapsedTime, // in seconds

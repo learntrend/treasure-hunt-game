@@ -110,6 +110,11 @@ function gameStateToDB(gameEngine, playerType, bookingId = null) {
         state.individualPlayerName = gameEngine.individualPlayerName;
     }
     
+    // Store team name for group games (for admin dashboard)
+    if (gameEngine.teamName) {
+        state.teamName = gameEngine.teamName;
+    }
+    
     // Convert groupMembers to array if it's a string (comma-separated)
     if (typeof state.groupMembers === 'string') {
         state.groupMembers = state.groupMembers.split(',').map(name => name.trim()).filter(name => name);
