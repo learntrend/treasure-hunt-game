@@ -125,10 +125,10 @@ const gameData = {
             name: "Location 10: The Final Destination",
             locationName: "The Final Destination",
             locationNameVariations: ["final destination", "the final destination"],
-            mapHint: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2483.1234567890!2d-0.1441!3d51.5034!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x487604d502c4b5b3%3A0x6b5a5b5b5b5b5b5b!2sLondon!5e0!3m2!1sen!2suk!4v1234567890123!5m2!1sen!2suk",
+            mapHint: null,
             question: "What is the final word that reveals the letter left behind?",
             correctAnswer: "TIME TURNS NOW", // Final clue answer - goes directly to final letter
-            textHint: "Use the first letters of locations and answers, then shift forward by the numbers shown.",
+            textHint: "this is just a placeholder now",
             titbits: "You have completed an incredible journey through time and space, following clues across London's historic landmarks. Each location told a story, each answer revealed a piece of the puzzle. The final destination represents the culmination of your adventure, where past and present meet, and the letter left behind from 1800 is finally revealed. This journey has connected you to history, to the stories of those who came before, and to the timeless messages that transcend centuries."
         }
     ]

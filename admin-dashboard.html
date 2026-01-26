@@ -446,6 +446,8 @@
                     ? (session.isTimerPaused ? '⏸️ Paused' : '▶️ Running') 
                     : '⏹️ Stopped';
                 const playerType = session.playerType || 'solo';
+                const teamName = session.teamName || (playerType === 'group' ? session.playerName : '-');
+                const displayTeamName = playerType === 'group' ? teamName : '-';
                 const members = session.groupMembers && session.groupMembers.length > 0 
                     ? session.groupMembers.join(', ') 
                     : '-';
@@ -588,8 +590,10 @@
 
             data.forEach((game, index) => {
                 const playerType = game.playerType || 'solo';
-                const teamName = game.teamName || (playerType === 'group' ? game.playerName : '-');
-                const displayTeamName = playerType === 'group' ? teamName : '-';
+                // Group Name: team name for group games, "-" for solo
+                const groupName = playerType === 'group' ? (game.teamName || game.playerName || '-') : '-';
+                // Your Name: individual player name (stored in individualPlayerName or playerName for solo)
+                const yourName = game.individualPlayerName || (playerType === 'solo' ? game.playerName : '-') || '-';
                 const members = game.groupMembers && game.groupMembers.length > 0 
                     ? game.groupMembers.join(', ') 
                     : '-';
@@ -785,7 +789,7 @@
                     csv += `"${session.sessionId || session.id}","${session.playerType || 'solo'}","${session.playerName || ''}","${csvTeamName}","${members}","${locationText}","${session.score || 0}","${formatTime(session.elapsedTime)}","${textHintsStr}","${mapHintsStr}","${status}","${formatTimestamp(session.updatedAt)}"\n`;
                 });
             } else {
-                csv = '#,Player Type,Player Name,Team Name,Group Members,Final Score,Final Time,Calculated Score,Locations Completed,Text Hints Used,Map Hints Used,Completed At\n';
+                csv = '#,Player Type,Group Name,Your Name,Group Members,Final Score,Final Time,Calculated Score,Locations Completed,Text Hints Used,Map Hints Used,Completed At\n';
                 data.forEach((game, index) => {
                     const members = game.groupMembers ? game.groupMembers.join('; ') : '';
                     const locationsCount = game.completedLocations ? game.completedLocations.length : 0;
@@ -798,8 +802,9 @@
                         ? mapHints.sort((a,b) => a-b).map(id => id === 0 ? 'Starting Point' : `Location ${id}`).join('; ')
                         : 'None';
                     
-                    const csvTeamName = game.teamName || (game.playerType === 'group' ? game.playerName : '-');
-                    csv += `${index + 1},"${game.playerType || 'solo'}","${game.playerName || ''}","${csvTeamName}","${members}","${game.finalScore || 0}","${formatTime(game.finalTime)}","${game.calculatedScore || 0}","${locationsCount}/10","${textHintsStr}","${mapHintsStr}","${formatTimestamp(game.completedAt)}"\n`;
+                    const csvGroupName = game.playerType === 'group' ? (game.teamName || game.playerName || '-') : '-';
+                    const csvYourName = game.individualPlayerName || (game.playerType === 'solo' ? game.playerName : '-') || '-';
+                    csv += `${index + 1},"${game.playerType || 'solo'}","${csvGroupName}","${csvYourName}","${members}","${game.finalScore || 0}","${formatTime(game.finalTime)}","${game.calculatedScore || 0}","${locationsCount}/10","${textHintsStr}","${mapHintsStr}","${formatTimestamp(game.completedAt)}"\n`;
                 });
             }
 

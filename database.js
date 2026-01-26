@@ -402,6 +402,8 @@ async function saveCompletedGame(gameStats) {
             sessionId: sessionId,
             playerType: gameStats.playerType,
             playerName: gameStats.playerName,
+            teamName: gameStats.teamName || null, // Store team name for group games
+            individualPlayerName: gameStats.individualPlayerName || null, // Store individual player name
             groupMembers: gameStats.groupMembers || [],
             finalScore: gameStats.score, // stars/points
             finalTime: gameStats.time, // in seconds

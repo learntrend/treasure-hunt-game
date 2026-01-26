@@ -859,11 +859,16 @@ function displayClueForLocation(location) {
     // Reset hint buttons and re-enable map hint for new location
     resetHintButtons();
     
-    // Re-enable and show map hint button for new clue
+    // Re-enable and show map hint button for new clue (hide for location 10)
     const mapHintBtn = document.getElementById('map-hint-btn');
     if (mapHintBtn) {
-        mapHintBtn.disabled = false;
-        mapHintBtn.style.display = 'block';
+        if (location.id === 10) {
+            // Hide map hint button for final clue (location 10)
+            mapHintBtn.style.display = 'none';
+        } else {
+            mapHintBtn.disabled = false;
+            mapHintBtn.style.display = 'block';
+        }
     }
     
     // Show the hint-buttons container in clue section
@@ -1174,9 +1179,12 @@ async function showMapHint() {
             const randomMessage = hintMessages[Math.floor(Math.random() * hintMessages.length)];
             
             // For location 2, use the clue-specific hint
+            // For location 10, use the placeholder text hint
             let clueHint = null;
             if (location.id === 2) {
                 clueHint = "Go to level above, find a sculpture made by Peter Laslo Peri, named: The Sunbathers";
+            } else if (location.id === 10) {
+                clueHint = location.textHint; // Use the placeholder text hint for location 10
             }
             
             showCharacterPopup(randomMessage, clueHint || location.textHint, false, false);
@@ -1344,6 +1352,7 @@ async function showFinalScreen() {
             playerType: currentPlayerType,
             playerName: gameEngine.playerName,
             teamName: gameEngine.teamName || null, // Store team name for group games
+            individualPlayerName: gameEngine.individualPlayerName || null, // Store individual player name
             groupMembers: gameEngine.groupMembers,
             score: stats.score,
             time: gameEngine.elapsedTime, // in seconds
