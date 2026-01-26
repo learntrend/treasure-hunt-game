@@ -1589,8 +1589,8 @@ input[type="text"].success {
 /* Support Links (Fixed) */
 /* Help Button */
 .btn-help {
-    background: rgba(255, 255, 255, 0.2);
-    border: 2px solid rgba(255, 255, 255, 0.3);
+    background: #667eea;
+    border: 2px solid rgba(255, 255, 255, 0.2); 
     border-radius: 50%;
     width: 40px;
     height: 40px;
