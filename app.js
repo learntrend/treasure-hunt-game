@@ -81,8 +81,101 @@ async function checkBookingAccess() {
         // Check if we can access the game
         const accessCheck = await window.DatabaseService.canAccessGame(bookingId);
         
+        // If access denied because session not found, try to create session from booking
+        if (!accessCheck.canAccess && accessCheck.reason === 'Game session not found') {
+            try {
+                // Try to get booking data to create session
+                const dbRef = window.DatabaseService.db || (typeof firebase !== 'undefined' && firebase.firestore ? firebase.firestore() : null);
+                if (dbRef) {
+                    const bookingDoc = await dbRef.collection('bookings').doc(bookingId).get();
+                    const docExists = typeof bookingDoc.exists === 'function' ? bookingDoc.exists() : bookingDoc.exists;
+                    if (docExists) {
+                        const bookingData = bookingDoc.data();
+                        // Create game session from booking
+                        const sessionId = await window.DatabaseService.createGameSessionFromBooking(bookingId, bookingData);
+                        if (sessionId) {
+                            // Reload access check to get the newly created session
+                            const newAccessCheck = await window.DatabaseService.canAccessGame(bookingId);
+                            if (newAccessCheck.canAccess && newAccessCheck.gameSession) {
+                                // Update accessCheck with new values
+                                accessCheck = newAccessCheck;
+                            } else {
+                                // Still can't access even after creating session
+                                const welcomeScreen = document.getElementById('welcome-screen');
+                                if (welcomeScreen) {
+                                    welcomeScreen.innerHTML = `
+                                        <div class="welcome-container">
+                                            <h1 class="game-title">Access Restricted</h1>
+                                            <p class="game-subtitle" style="color: var(--accent-color); margin-top: 20px;">
+                                                ${newAccessCheck.reason || 'You cannot access this game at this time.'}
+                                            </p>
+                                            <p style="margin-top: 20px; color: #666;">
+                                                If you believe this is an error, please contact support.
+                                            </p>
+                                        </div>
+                                    `;
+                                }
+                                return;
+                            }
+                        } else {
+                            // Couldn't create session
+                            const welcomeScreen = document.getElementById('welcome-screen');
+                            if (welcomeScreen) {
+                                welcomeScreen.innerHTML = `
+                                    <div class="welcome-container">
+                                        <h1 class="game-title">Access Restricted</h1>
+                                        <p class="game-subtitle" style="color: var(--accent-color); margin-top: 20px;">
+                                            Unable to create game session. Please contact support.
+                                        </p>
+                                        <p style="margin-top: 20px; color: #666;">
+                                            If you believe this is an error, please contact support.
+                                        </p>
+                                    </div>
+                                `;
+                            }
+                            return;
+                        }
+                    } else {
+                        // Booking doesn't exist
+                        const welcomeScreen = document.getElementById('welcome-screen');
+                        if (welcomeScreen) {
+                            welcomeScreen.innerHTML = `
+                                <div class="welcome-container">
+                                    <h1 class="game-title">Access Restricted</h1>
+                                    <p class="game-subtitle" style="color: var(--accent-color); margin-top: 20px;">
+                                        Booking not found. Please check your booking link.
+                                    </p>
+                                    <p style="margin-top: 20px; color: #666;">
+                                        If you believe this is an error, please contact support.
+                                    </p>
+                                </div>
+                            `;
+                        }
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.error('Error creating game session:', error);
+                const welcomeScreen = document.getElementById('welcome-screen');
+                if (welcomeScreen) {
+                    welcomeScreen.innerHTML = `
+                        <div class="welcome-container">
+                            <h1 class="game-title">Access Restricted</h1>
+                            <p class="game-subtitle" style="color: var(--accent-color); margin-top: 20px;">
+                                Error accessing game. Please try again or contact support.
+                            </p>
+                            <p style="margin-top: 20px; color: #666;">
+                                If you believe this is an error, please contact support.
+                            </p>
+                        </div>
+                    `;
+                }
+                return;
+            }
+        }
+        
         if (!accessCheck.canAccess) {
-            // Show access denied message
+            // Show access denied message for other reasons
             const welcomeScreen = document.getElementById('welcome-screen');
             if (welcomeScreen) {
                 welcomeScreen.innerHTML = `
@@ -100,8 +193,35 @@ async function checkBookingAccess() {
             return;
         }
         
-        // Access granted - load game session
-        const gameSession = accessCheck.gameSession;
+        // Access granted - load or create game session
+        let gameSession = accessCheck.gameSession;
+        
+        // If no session exists but access is granted, try to create one from booking
+        if (!gameSession && accessCheck.canAccess) {
+            try {
+                // Try to get booking data to create session
+                const dbRef = window.DatabaseService.db || (typeof firebase !== 'undefined' && firebase.firestore ? firebase.firestore() : null);
+                if (dbRef) {
+                    const bookingDoc = await dbRef.collection('bookings').doc(bookingId).get();
+                    const docExists = typeof bookingDoc.exists === 'function' ? bookingDoc.exists() : bookingDoc.exists;
+                    if (docExists) {
+                        const bookingData = bookingDoc.data();
+                        // Create game session from booking
+                        const sessionId = await window.DatabaseService.createGameSessionFromBooking(bookingId, bookingData);
+                        if (sessionId) {
+                            // Reload access check to get the newly created session
+                            const newAccessCheck = await window.DatabaseService.canAccessGame(bookingId);
+                            if (newAccessCheck.gameSession) {
+                                gameSession = newAccessCheck.gameSession;
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error creating game session:', error);
+            }
+        }
+        
         if (gameSession) {
             // IMPORTANT: Set session ID so loadGameState can find it
             if (window.DatabaseService && typeof window.DatabaseService.setSessionId === 'function') {
@@ -122,6 +242,9 @@ async function checkBookingAccess() {
                     // Will be handled by checkForSavedGame
                 }
             }
+        } else if (accessCheck.canAccess) {
+            // Access is granted but no session found and couldn't create one
+            console.warn('Access granted but no game session found for bookingId:', bookingId);
         }
     } catch (error) {
         console.error('Error checking booking access:', error);
