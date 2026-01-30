@@ -74,9 +74,9 @@ const gameData = {
         {
             id: 6,
             clue: "Time has left many names beside the river. On the bridge, find the plaque that maps them all.\nRead from left to right, as time always moves.\nThe third name from the left tells you where to go.",
-            name: "Location 6: Victoria Embankment Gardens",
-            locationName: "Victoria Embankment Gardens",
-            locationNameVariations: ["victoria embankment gardens", "embankment gardens", "the victoria embankment gardens"],
+            name: "Location 6: Victoria Embankment Garden",
+            locationName: "Victoria Embankment Garden",
+            locationNameVariations: ["victoria embankment garden", "embankment garden", "the victoria embankment garden"],
             mapHint: "https://www.google.com/maps/embed?pb=!4v1769366908680!6m8!1m7!1syTWsojP8bqmJPwH9mRWzHA!2m2!1d51.50795851300809!2d-0.1224441565759356!3f36.04525018162211!4f-3.4591971974855227!5f0.7820865974627469",
             question: "A Poetic Genius once sent something forward through time, not with his hands, but with his words.\nWhat did Poetic Genius throw?",
             correctAnswer: "Inspiring Mantle",
