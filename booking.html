@@ -290,7 +290,7 @@
             </p>
         </div>
 
-        <div class="booking-intro">
+        <div id="booking-intro" class="booking-intro">
             <p>Ready to embark on a time-traveling treasure hunt? Fill out the form below to book your adventure!</p>
             <p style="margin-top: 10px; font-size: 0.9rem; opacity: 0.9;">All fields marked with <span style="color: var(--accent-color);">*</span> are required.</p>
         </div>
@@ -1150,7 +1150,10 @@
                 }
                 
                 // Show success message with game link
-                document.getElementById('booking-intro').style.display = 'none';              
+                const introEl = document.getElementById('booking-intro');
+                const formEl = document.getElementById('booking-form');
+                if (introEl) introEl.style.display = 'none';
+                if (formEl) formEl.style.display = 'none';
                 document.getElementById('booking-success').classList.add('show');
                 document.getElementById('confirmation-email').textContent = formData.email;
                 
