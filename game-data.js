@@ -13,7 +13,7 @@ const gameData = {
     locations: [
         {
             id: 1,
-            clue: "I hang up high where journeys begin, I have two hands but never wave.<br/>Trains rush past, but I stay still, helping travellers know when to leave.\n\nWhat am I?",
+            clue: "I hang up high where journeys begin, I have two hands but never wave. Trains rush past, but I stay still, helping travellers know when to leave.\n\nWhat am I?",
             name: "Location 1: Waterloo Clock",
             locationName: "Waterloo Clock",
             locationNameVariations: ["waterloo clock", "clock", "the waterloo clock"],
@@ -115,8 +115,8 @@ const gameData = {
             locationName: "King Charles I",
             locationNameVariations: ["king charles i", "king charles", "charles i", "statue of king charles i"],
             mapHint: "https://www.google.com/maps/embed?pb=!4v1769370543722!6m8!1m7!1soPheZ1GvHp0Kor-97p5qWw!2m2!1d51.50722965825501!2d-0.1276621886261673!3f355.37288315890896!4f0!5f0.7820865974627469",
-            question: "Before this rider claimed the spot, another memory stood here first.\nWhat did the king replace?",
-            correctAnswer: "Queen Eleanor's Cross",
+            question: "Before this rider claimed the spot, another memory stood here first.\nWhat did the king replace? Queen Eleanor's ______",
+            correctAnswer: "Cross",
             textHint: "Look down — history rests beneath your feet.",
             titbits: "The equestrian statue of King Charles I stands at the southern end of Trafalgar Square, facing down Whitehall. It was created by French sculptor Hubert Le Sueur in 1633 and is one of London's oldest outdoor statues. The statue marks the site where the original Charing Cross (Queen Eleanor's Cross) once stood. King Charles I was executed in 1649 during the English Civil War, making this statue historically significant."
         },
