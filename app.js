@@ -804,8 +804,21 @@ function displayClueForLocation(location) {
         }
     }
     
-    // Update clue
+    // Update clue and optional clue image
     document.getElementById('clue-text').textContent = location.clue;
+    
+    const clueImageContainer = document.getElementById('clue-image-container');
+    const clueImage = document.getElementById('clue-image');
+    if (clueImageContainer && clueImage) {
+        if (location.clueImage) {
+            clueImage.src = location.clueImage;
+            clueImage.alt = `Clue for ${location.name || 'location'}`;
+            clueImageContainer.style.display = 'block';
+        } else {
+            clueImage.src = '';
+            clueImageContainer.style.display = 'none';
+        }
+    }
     
     // Update clue dashes - for location 10, use correctAnswer instead of locationName
     const clueDashes = document.getElementById('clue-dashes');

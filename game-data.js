@@ -13,19 +13,19 @@ const gameData = {
     locations: [
         {
             id: 1,
-            clue: "I hang up high where journeys begin, I have two hands but never wave. Trains rush past, but I stay still, helping travellers know when to leave.\nWhat am I?",
+            clue: "I hang up high where journeys begin, I have two hands but never wave.<br/>Trains rush past, but I stay still, helping travellers know when to leave.\n\nWhat am I?",
             name: "Location 1: Waterloo Clock",
             locationName: "Waterloo Clock",
             locationNameVariations: ["waterloo clock", "clock", "the waterloo clock"],
             mapHint: "https://www.google.com/maps/embed?pb=!4v1769363363916!6m8!1m7!1sRMzv-N5FVCOLpPAxGn0opg!2m2!1d51.50322710450521!2d-0.1123464712873058!3f298.3047576250058!4f3.665911227972913!5f0.7820865974627469",
-            question: "Time shows a picture of a journey long ago. On the mural made to celebrate 200 years of rail travel, find the child who is travelling through time.\nFrom which place did the child begin their journey?",
+            question: "Time shows a picture of a journey long ago. On the mural made to celebrate 200 years of rail travel, find the child who is travelling through time.\nFrom which place did the child begin their journey?\nStand where travellers first step inside (can be seen if you are under your location). The picture greets you right at the beginning of the journey.",
             correctAnswer: "Horsley",
-            textHint: "Stand where travellers first step inside (can be seen if you are under your location). The picture greets you right at the beginning of the journey.",
+            textHint: "A place name derived from- place of horses",
             titbits: "Waterloo Station is one of London's busiest railway stations, opened in 1848. The station's clock has been a landmark for travellers for over 170 years. The station was named after the Battle of Waterloo and has been featured in numerous films and literature. The mural celebrating 200 years of rail travel depicts scenes from railway history, including a child travelling through time."
         },
         {
             id: 2,
-            clue: "Travel to the level where time meets your eyes. Stand face-to-face with the clock, not above or below.\nFrom here, look for a couple made of pericrete frozen in time,\nHow many people are peeking through a wall?",
+            clue: "Travel to the level where time meets your eyes.\nStand on the level where you can face-to-face with the clock, not above or below.\nHere, find a couple made of pericrete frozen in time,\nHow many people are peeking over the wall?",
             name: "Location 2: Six People",
             locationName: "Six",
             locationNameVariations: ["six", "6"],
@@ -37,7 +37,7 @@ const gameData = {
         },
         {
             id: 3,
-            clue: "Go back down to where you stood before, three travellers pause, carrying more. Their journey crossed the sea and time, this monument remembers their climb.\nWhat is this monument called?",
+            clue: "Go back down to the level of Clock, facing medal & pointing north, at 240 degree a family of three travellers pause, carrying more. Their journey crossed the sea and time, this monument remembers their climb.\nWhat is this monument called?",
             name: "Location 3: National Windrush Monument",
             locationName: "National Windrush Monument",
             locationNameVariations: ["national windrush monument", "windrush monument", "the national windrush monument"],
@@ -61,10 +61,11 @@ const gameData = {
         },
         {
             id: 5,
-            clue: "Walk where feet cross the river, not by boat, not by train.\nI was named to celebrate a GOLDEN year, not for one person, but for a reign.\nI stand beside a wheel that sees the future, and near a clock that watches time begin.\nWhat am I?",
-            name: "Location 5: Golden Jubilee Bridge",
-            locationName: "Golden Jubilee Bridge",
-            locationNameVariations: ["golden jubilee bridge", "jubilee bridge", "the golden jubilee bridge"],
+            clue: "Follow the directions your map has traced, to reach the location and find your place. Which Hall do you see?",
+            clueImage: "images/location5-clue.png", // Map image shown with the clue
+            name: "Location 5: Royal Festival Hall",
+            locationName: "Royal Festival Hall",
+            locationNameVariations: ["royal festival hall", "royal festival", "the royal festival hall"],
             mapHint: "https://www.google.com/maps/embed?pb=!4v1769366465013!6m8!1m7!1sBteM4qvg_0fxUhRmGbd_PA!2m2!1d51.50535665515403!2d-0.1167138988201796!3f307.7831709459798!4f-8.58211714459695!5f0.7820865974627469",
             question: "Before crossing time's river, a man stands tall who once was locked away.\nWho is the traveller who returned from prison to lead a nation?",
             correctAnswer: "Nelson Mandela",
@@ -85,7 +86,7 @@ const gameData = {
         },
         {
             id: 7,
-            clue: "Time remembers those who never returned. Before travelling onward, honour the names of those who fell in action or died of wounds and disease.\nFrom the memorial, collect letters exactly as follows:\n• First and second letter of the 6th name in the second column\n• First and second letter of the 6th name in the first column\n• Sixth, seventh and eighth letter of the 5th name in the second column\n\nAdd a space, then add an x\nWhere does this spell take you?",
+            clue: "Time remembers those who never returned. Before travelling onward, honour the names of those who fell in action or died of wounds and disease.\nFind the memorial, collect letters exactly as follows:\n• First and second letter of the 6th name in the second column\n• First and second letter of the 6th name in the first column\n• Sixth, seventh and eighth letter of the 5th name in the second column\n\nAdd a space, then add an x\nWhere does this spell take you?",
             name: "Location 7: Charing Cross",
             locationName: "Charing Cross",
             locationNameVariations: ["charing cross", "charing cross station"],
@@ -102,7 +103,7 @@ const gameData = {
             locationName: "Trafalgar Square",
             locationNameVariations: ["trafalgar square", "the trafalgar square"],
             mapHint: "https://www.google.com/maps/embed?pb=!4v1769367121331!6m8!1m7!1sVqMMJRBO8_ICJDFtoxff2g!2m2!1d51.50771717045196!2d-0.1275985731589382!3f348.6476903361844!4f-1.5751135114300183!5f0.7820865974627469",
-            question: "Beneath old rules of measure and scale, a number marks when length feels just right.\nAt what temperature was the standard set?",
+            question: "On the left side of Beatty, beneath old rules of measure and scale, a number marks when length feels just right.\nAt what temperature was the standard set?",
             correctAnswer: "62",
             textHint: "Look below the imperial standards of length.",
             titbits: "Trafalgar Square is one of London's most famous public spaces, named after the Battle of Trafalgar. The square is dominated by Nelson's Column, surrounded by four bronze lions. The square was designed by architect John Nash and completed in the 1840s. It has been a site for political demonstrations, celebrations, and public gatherings. The square contains various monuments and fountains, and is a major tourist attraction."

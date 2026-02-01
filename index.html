@@ -63,10 +63,13 @@
                     <h3>Tips for Success</h3>
                     <ul class="tutorial-list">
                         <li>You get <strong>100 points as bonus</strong> for playing the game!</li>
-                        <li>Read clues carefully for location hints</li>
-                        <li>Look around - answers are based on physical features</li>
+                        <li>Solve clues carefully for location hints</li>
+                        <li>Look around - some answers are based on the physical features</li>
                         <li>Earn <strong>+100 points</strong> per correct answer</li>
                         <li>Text hints cost <strong>-30 points</strong>, map hints cost <strong>-50 points</strong></li>
+                        <li>You can use dashes for the answers to help you solve the clues</li>
+                        <li>Dash means number of letters in the word</li>
+                        <li>Slash means space between words</li>
                         <li>Track progress with "Your Journey" panel</li>
                         <li>Take your time and enjoy the history!</li>
                     </ul>
@@ -175,6 +178,9 @@
                     <h3>🔍 Your Clue</h3>
                 </div>
                 <div class="clue-content">
+                    <div id="clue-image-container" style="display: none; margin-bottom: 16px; text-align: center;">
+                        <img id="clue-image" src="" alt="Clue map" style="max-width: 100%; max-height: 300px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    </div>
                     <p id="clue-text">Loading clue...</p>
                     <div id="clue-dashes" class="answer-dashes" style="margin-top: 10px; font-family: monospace; font-size: 1.2em; color: var(--accent-color);"></div>
                 </div>
@@ -191,7 +197,7 @@
             <!-- Location Confirmation (shown after correct location name) -->
             <div id="location-info-section" class="game-section" style="display: none;">
                 <div class="section-header">
-                    <h3>📍 Current Location</h3>
+                    <h3>📍 Go to Location</h3>
                 </div>
                 <div class="location-info-content">
                     <p id="location-name" class="location-name">Location Name</p>
@@ -546,6 +552,5 @@
             </div>
         </div>
     </div>
-
 </body>
 </html>

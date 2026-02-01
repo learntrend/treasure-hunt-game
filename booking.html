@@ -465,7 +465,7 @@
             <h2>Booking Confirmed!</h2>
             <p>Thank you for booking your adventure!</p>
             <p>We've sent a confirmation email to <strong id="confirmation-email"></strong></p>
-            <p>You'll receive payment instructions shortly.</p>
+           <!-- <p>You'll receive payment instructions shortly.</p> -->
             <div id="game-link" style="margin-top: 20px;"></div>
             <!--<p style="margin-top: 30px;">
                 <a href="index.html" class="btn-primary btn-sparkle" style="text-decoration: none; display: inline-block;">
@@ -962,7 +962,7 @@
                 players: document.getElementById('players').value,
                 messageFrom: document.getElementById('message-from').value.trim(),
                 personalMessage: document.getElementById('personal-message').value.trim(),
-                paymentMethod: document.querySelector('input[name="payment"]:checked')?.value,
+                paymentMethod: document.querySelector('input[name="payment"]:checked')?.value || 'pending', // Payment disabled for testing - will integrate later
                 referral: document.getElementById('referral').value,
                 specialRequests: document.getElementById('special-requests').value.trim(),
                 emergencyContact: document.getElementById('emergency-contact').value.trim(),
@@ -1042,18 +1042,18 @@
             
             // Personal message is now optional, no validation needed
             
-            if (!formData.paymentMethod) {
-                // Highlight payment options
-                const paymentOptions = document.querySelectorAll('.payment-option');
-                paymentOptions.forEach(opt => {
-                    opt.style.borderColor = '#e94560';
-                    opt.style.borderWidth = '2px';
-                    opt.style.backgroundColor = 'rgba(233, 69, 96, 0.05)';
-                    if (!firstErrorField) firstErrorField = opt;
-                });
-                errors.push('Please select a payment method');
-                isValid = false;
-            }
+            // Payment validation disabled for testing - will integrate later
+            // if (!formData.paymentMethod) {
+            //     const paymentOptions = document.querySelectorAll('.payment-option');
+            //     paymentOptions.forEach(opt => {
+            //         opt.style.borderColor = '#e94560';
+            //         opt.style.borderWidth = '2px';
+            //         opt.style.backgroundColor = 'rgba(233, 69, 96, 0.05)';
+            //         if (!firstErrorField) firstErrorField = opt;
+            //     });
+            //     errors.push('Please select a payment method');
+            //     isValid = false;
+            // }
             
             if (!formData.referral) {
                 markFieldError('referral', 'Please tell us how you found us');

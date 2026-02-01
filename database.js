@@ -790,23 +790,41 @@ async function canAccessGame(bookingId = null, sessionId = null) {
             }
         }
 
-        // Check booking time (if booking date/time exists)
-        if (gameSession.bookingDate && gameSession.bookingTime) {
+        // Check booking time - fetch from bookings collection for latest values (in case admin updated)
+        let bookingDate = gameSession.bookingDate;
+        let bookingTime = gameSession.bookingTime;
+        
+        // If we have a bookingId, fetch the latest date/time from the bookings collection
+        if (gameSession.bookingId) {
+            try {
+                const bookingDoc = await db.collection('bookings').doc(gameSession.bookingId).get();
+                const bookingExists = typeof bookingDoc.exists === 'function' ? bookingDoc.exists() : bookingDoc.exists;
+                if (bookingExists) {
+                    const bookingData = bookingDoc.data();
+                    if (bookingData.date) bookingDate = bookingData.date;
+                    if (bookingData.time) bookingTime = bookingData.time;
+                }
+            } catch (err) {
+                console.warn('Could not fetch booking for updated time, using session values:', err.message);
+            }
+        }
+        
+        if (bookingDate && bookingTime) {
             const now = new Date();
             
             // Parse booking date and time - handle different formats
             let bookingDateTime;
             try {
                 // Try ISO format first: "2024-01-15T11:30"
-                const dateTimeString = `${gameSession.bookingDate}T${gameSession.bookingTime}`;
+                const dateTimeString = `${bookingDate}T${bookingTime}`;
                 bookingDateTime = new Date(dateTimeString);
                 
                 // Validate the date
                 if (isNaN(bookingDateTime.getTime())) {
                     console.error('Invalid booking date/time:', dateTimeString);
                     // Fallback: try parsing date and time separately
-                    const [datePart] = gameSession.bookingDate.split('T');
-                    const [timePart] = gameSession.bookingTime.split('T');
+                    const [datePart] = bookingDate.split('T');
+                    const [timePart] = bookingTime.split('T');
                     bookingDateTime = new Date(`${datePart}T${timePart}`);
                 }
                 
