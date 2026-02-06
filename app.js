@@ -1310,7 +1310,7 @@ async function fetchPersonalMessage() {
         // If personalized message exists, combine with default opening
         if (personalizedMessage) {
             // Format: Dear name, blank line, default text, blank line, personalized message
-            let fullMessage = `Dear ${recipient},\n\nIn the year 1800, this message was written but never delivered. Through time and space, it has found its way to you.\n\n${personalizedMessage}`;
+            let fullMessage = `Dear ${recipient},\n\nIn the year 1800, this message was written but never delivered. Through time and space, it has found its way to you — \n\n${personalizedMessage}`;
             return fullMessage;
         }
         
@@ -1327,7 +1327,7 @@ async function fetchPersonalMessage() {
 // Get default message if none is available
 function getDefaultMessage() {
     const recipient = gameEngine.groupMembers.length > 0 ? gameEngine.groupMembers[0] : gameEngine.playerName;
-    return `Dear ${recipient},\n\nIn the year 1800, this message was written but never delivered. Through time and space, it has found its way to you.\n\nYou have followed the trail, solved the puzzles, and proven yourself worthy. This letter was meant for you, across the centuries.\n\nMay this journey remind you that some messages are timeless, and some connections transcend the boundaries of time itself.\n\nWith hope from the past,\nA message from 1800`;
+    return `Dear ${recipient},\n\nIn the year 1800, this message was written but never delivered. Through time and space, it has found its way to you.\n\nYou have followed the trail, solved the puzzles, and proven yourself worthy. This letter was meant for you, across the centuries.\n\nMay this journey remind you that some messages are timeless, and some connections transcend the boundaries of time itself.`;
 }
 
 // Show final screen
