@@ -504,6 +504,10 @@ body::before {
     line-height: 1.8;
 }
 
+#question-text {
+    white-space: pre-line;
+}
+
 .location-info-content {
     margin-top: 15px;
 }
