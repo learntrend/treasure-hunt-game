@@ -18,7 +18,7 @@ const gameData = {
             locationName: "Waterloo Clock",
             locationNameVariations: ["waterloo clock", "clock", "the waterloo clock"],
             mapHint: "https://www.google.com/maps/embed?pb=!4v1769363363916!6m8!1m7!1sRMzv-N5FVCOLpPAxGn0opg!2m2!1d51.50322710450521!2d-0.1123464712873058!3f298.3047576250058!4f3.665911227972913!5f0.7820865974627469",
-            question: "Time reveals a picture of a journey from long ago.\nOn the mural created to celebrate 200 years of rail travel\nStand where travellers first step inside the station —\nthe mural greets you right at the beginning of the journey, visible from below your position.\n A child is shown travelling through time\n\nFrom which place did the child begin their journey?",
+            question: "Time reveals a picture of a journey from long ago.\nOn the mural created to celebrate 200 years of rail travel\nStand where travellers first step inside the station —\nThe mural greets you right at the beginning of the journey, visible from below your position.\n A child is shown travelling through time\n\nFrom which place did the child begin their journey?",
             correctAnswer: "Horsley",
             textHint: "A place name derived from- place of horses",
             titbits: "Waterloo Station is one of London's busiest railway stations, opened in 1848. The station's clock has been a landmark for travellers for over 170 years. The station was named after the Battle of Waterloo and has been featured in numerous films and literature. The mural celebrating 200 years of rail travel depicts scenes from railway history, including a child travelling through time."
@@ -86,7 +86,7 @@ const gameData = {
         },
         {
             id: 7,
-            clue: "Time remembers those who never returned. Before travelling onward, honour the names of those who fell in action or died of wounds and disease.\nFind the memorial, collect letters exactly as follows:\n\n• First and second letter of the 6th name in the second column\n• First and second letter of the 6th name in the first column\n• Sixth, seventh and eighth letter of the 5th name in the second column\nAdd a space, then add an x\n\nWhere does this spell take you?",
+            clue: "Time remembers those who never returned. Before travelling onward, honour the names of those who fell in action or died of wounds and disease.\nFind the memorial, collect letters exactly as follows:\n\n• First and second letter of the 6th name in the second column\n• First and second letter of the 6th name in the first column\n• Sixth, seventh and eighth letter of the 5th name in the second column\n• Add a space, then add an x\n\nWhere does this spell take you?",
             name: "Location 7: Charing Cross",
             locationName: "Charing Cross",
             locationNameVariations: ["charing cross", "charing cross station"],
@@ -122,7 +122,7 @@ const gameData = {
         },
         {
             id: 10,
-            clue: "🕰️ You’ve reached the moment where time slows down.\nFind a quiet place — this message was never meant to be rushed.\nTo uncover what was left behind, follow the traveller’s method exactly.\nEvery answer you discovered exists at a different moment in time.\nFrom each named location or answer, take the first letter.\nThen move forward through time by the number shown next to it to arrive at the correct letter for the final message.\n\nActual Clue\n(Do not change the order) Location 4 (+1), Answer 1 (+1), Answer 4 (0), Location 7 (+2)\nLocation 4 (+1), Location 8 (+1), Answer 7 (+1), Answer 4 (+1), Location 4 (0)\nAnswer 4 (+1), Location 3 (+1), Location 6 (+1)",
+            clue: "🕰️ You’ve reached the moment where time slows down.\nFind a quiet place — this message was never meant to be rushed.\nTo uncover what was left behind, follow the traveller’s method exactly.\nEvery answer you discovered exists at a different moment in time.\n\nFrom each named Location or Answer you found, take the first letter.\nThen move forward by the number shown next to it, to arrive at the correct letter for the final message.\n\nActual Clue — \n(Do not change the order)\n• Location 4 (+1), Answer 1 (+1), Answer 4 (0), Location 7 (+2)\n\n• Location 4 (+1), Location 8 (+1), Answer 7 (+1), Answer 4 (+1), Location 4 (0)\n\n• Answer 4 (+1), Location 3 (+1), Location 6 (+1)",
             name: "Location 10: The Final Destination",
             locationName: "The Final Destination",
             locationNameVariations: ["final destination", "the final destination"],
