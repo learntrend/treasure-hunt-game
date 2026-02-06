@@ -29,7 +29,7 @@ const gameData = {
             locationName: "Six",
             locationNameVariations: ["six", "6"],
             mapHint: null, // No map hint - use text hint for clue instead
-            question: "Turn left and walk beside the stone story. Time has been stamped below a shining medal.\n\nIn which year was this memory placed to honour those lost in battle of Waterloo?",
+            question: "Facing the couple, turn left and walk beside the stone story. Time has been stamped below a shining medal.\n\nIn which year was this memory placed to honour those lost in battle of Waterloo?",
             correctAnswer: "2015",
             textHint: "History whispers softly.\nLook closely beneath the medal — the year is hiding there.",
             titbits: "Waterloo Station features several memorials and artworks. The Waterloo Memorial commemorates those who lost their lives in the Battle of Waterloo. The station area contains various sculptures and installations that tell stories of history and travel. The memorial was placed in 2015 to mark the 200th anniversary of the Battle of Waterloo."
