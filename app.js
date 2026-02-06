@@ -763,7 +763,7 @@ function generateAnswerDashes(answer) {
     // Create separate dashes for each letter with spaces between them
     // Use '/ ' between words to differentiate from single space between letters
     // Show apostrophes as apostrophes instead of dashes
-    return words.map(word => word.split('').map(char => char === "'" ? "'" : '_').join(' ')).join(' / '); // '/ ' between words
+    return words.map(word => word.split('').map(char => char === "'" ? "'" : '_').join(' ')).join(' - '); // '/ ' between words
 }
 
 // Load current location data
