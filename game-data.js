@@ -18,14 +18,13 @@ const gameData = {
             locationName: "Waterloo Clock",
             locationNameVariations: ["waterloo clock", "clock", "the waterloo clock"],
             mapHint: "https://www.google.com/maps/embed?pb=!4v1769363363916!6m8!1m7!1sRMzv-N5FVCOLpPAxGn0opg!2m2!1d51.50322710450521!2d-0.1123464712873058!3f298.3047576250058!4f3.665911227972913!5f0.7820865974627469",
-            question: "Time reveals a picture of a journey from long ago.\nOn the mural created to celebrate 200 years of rail travel\nStand where travellers first step inside the station —\nThe mural greets you right at the beginning of the journey, visible from below your position.\n A child is shown travelling through time\n\nFrom which place did the child begin their journey?",
-            correctAnswer: "Horsley",
+            question: "Stand where travellers first step inside the station, which is visible from your location,\nA mural to celebrate 200 years of rail travel greets you right at the beginning of the journey. \nA child is shown travelling through time,\n\nFrom which place did the child begin their journey?",            correctAnswer: "Horsley",
             textHint: "A place name derived from- place of horses",
             titbits: "Waterloo Station is one of London's busiest railway stations, opened in 1848. The station's clock has been a landmark for travellers for over 170 years. The station was named after the Battle of Waterloo and has been featured in numerous films and literature. The mural celebrating 200 years of rail travel depicts scenes from railway history, including a child travelling through time."
         },
         {
             id: 2,
-            clue: "Travel to the level where time meets your eyes.\nStand face-to-face with the clock — not above it, not below it.\nFrom here, look around carefully around.\nYou will see a couple made of pericrete, frozen in time on a wall.\n\nHow many people are peeking over the wall?",
+            clue: "Travel to the level where time meets your eyes.\nStand face-to-face with the clock — not above it, not below it.\nFrom here, look carefully around,\nYou will see a couple made of pericrete, frozen in time on a wall.\n\nHow many people are peeking over the wall?",
             name: "Location 2: Six People",
             locationName: "Six",
             locationNameVariations: ["six", "6"],
@@ -37,7 +36,7 @@ const gameData = {
         },
         {
             id: 3,
-            clue: "Return to the level of the clock.\nFace the medal, point yourself north, and turn to 240 degrees.\nThere, a family of three travellers pauses —\nstanding on what they carried, after crossing sea and time.\nThis monument remembers their long journey and arrival.\n\nWhat is the name of this monument?",
+            clue: "Return to the level of your first location.\nFace the medal, point compass north, walk towards 240 degrees.\nThere, a family of three travellers pauses —\nstanding on what they carried, after crossing sea and time.\nThis monument remembers their long journey and arrival.\n\nWhat is the name of this monument?",
             name: "Location 3: National Windrush Monument",
             locationName: "National Windrush Monument",
             locationNameVariations: ["national windrush monument", "windrush monument", "the national windrush monument"],
