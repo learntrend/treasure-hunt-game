@@ -74,7 +74,7 @@ const gameData = {
         },
         {
             id: 6,
-            clue: "Time has left many names beside the river. On the bridge, find the plaque that maps them all.\nRead from left to right, as time always moves.\nThe third name from the left tells you where to go.",
+            clue: "Time has left many names beside the river. On the bridge, find the plaque that maps them all.\nRead from left to right, as time always moves.\nThe third name from the left, tells you where to go.",
             name: "Location 6: Victoria Embankment Garden",
             locationName: "Victoria Embankment Garden",
             locationNameVariations: ["victoria embankment garden", "embankment garden", "the victoria embankment garden"],
